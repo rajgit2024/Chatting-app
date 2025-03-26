@@ -10,6 +10,10 @@ router.post("/register",(req,res)=>{
     res.send("register route!")
 })
 
+router.post("/hello",(req,res)=>{
+    res.send("hello route!")
+})
+
 router.post("/logout",(req,res)=>{
     res.send("Logout route!")
 })
