@@ -80,7 +80,7 @@ const updateVerificationStatus = async (userId) => {
 
   
 
-const userModel = {
+module.exports = {
     updateVerificationStatus,
     registerUser,
     userById,
@@ -88,5 +88,4 @@ const userModel = {
     comparePass,
     updatePassword,
     userPhone,
-}
-export default userModel;
+};

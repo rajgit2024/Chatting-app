@@ -1,6 +1,6 @@
 import express from "express";
 import bcrypt from "bcryptjs";
-import userModel from "../models/userModel";
+const userModel=require("../models/userModel.js")
 
 const registerUser = async (req, res) => {
     const { name,email,password,phone_number } = req.body;

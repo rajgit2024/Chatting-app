@@ -1,12 +1,12 @@
 import express from "express";
-import userController from "../controllers/userController";;
+import {loginUser,registerUser} from "../controllers/userController";;
 const router=express.Router();
 
 router.post("/login",(req,res)=>{
     res.send("Login route!")
 })
 
-router.post("/register",userController.registerUser);
+router.post("/register",registerUser)
 
 <<<<<<< HEAD
 router.post("/hello",(req,res)=>{
