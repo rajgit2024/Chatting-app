@@ -7,6 +7,8 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "pg": "^8.14.1",
+    "pool": "^0.4.1",
     "postgres": "^3.4.5",
     "socket.io": "^4.8.1"
   },
@@ -18,8 +20,8 @@
   "main": "src/app.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon scr/app.js",
-    "start": "node app.js"
+    "dev": "nodemon src/app.js",
+    "start": "node src/app.js"
   },
   "keywords": [],
   "author": "",
