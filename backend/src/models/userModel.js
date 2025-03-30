@@ -1,39 +1,46 @@
-import express from "express";
-import bcrypt from "bcryptjs";
-import pool from "../config/db.js"
+const express = require("express");
+const bcrypt = require("bcrypt");
+const pool = require("../config/db.js");
 
-//Add new user (hashed password)
-const registerUser= async(name, email, password, phone_number)=>{
+// Add new user (hashed password)
+const registerrUser = async (name, email, hashPassword, phone_number) => {
     try {
-        
-    const result=await pool.query("INSERT INTO users (name,email,password,phone_number)  VALUES ($1,$2,$3,$4) RETURNING *",[name,email,password,phone_number]);
-    return result.rows[0];
-
+        const result = await pool.query(
+            "INSERT INTO users (name, email, password, phone_number) VALUES ($1, $2, $3, $4) RETURNING *",
+            [name, email, hashPassword, phone_number]
+        );
+        return result.rows[0];
     } catch (error) {
         throw error;
-    } 
-}
-//find user by phone
-const userPhone=async(phone_number)=>{
-    const result=await pool.query("SELECT * FROM users WHERE phone_number=$1",[phone_number]);
-    return result;
-}
+    }
+};
 
-//find user by id
-const userById=async (id)=>{
-try {
-    const result=await pool.query("SELECT * FROM users WHERE id=$1",[id]);
-    return result.rows[0];
-} catch (error) {
-    throw error;
-}
-}
-//Update password
-const updatePassword = async (hashedPassword, userId) => {
+// Find user by phone
+const userPhone = async (phone_number) => {
+    try {
+        const result = await pool.query("SELECT * FROM users WHERE phone_number=$1", [phone_number]);
+        return result[0];
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Find user by ID
+const userById = async (id) => {
+    try {
+        const result = await pool.query("SELECT * FROM users WHERE id=$1", [id]);
+        return result.rows[0];
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Update password
+const updatePassword = async (hashPassword, userId) => {
     try {
         const result = await pool.query(
             "UPDATE users SET password = $1 WHERE id = $2 RETURNING *",
-            [hashedPassword, userId]
+            [hashPassword, userId]
         );
         return result.rows[0];
     } catch (error) {
@@ -42,9 +49,8 @@ const updatePassword = async (hashedPassword, userId) => {
     }
 };
 
-//Find user by gmail
+//User by email
 const userByGmail=async(email)=>{
-    
     try {
         console.log('Searching for user with email:', email);
         const result=await pool.query("SELECT * FROM users WHERE email=$1",[email]);
@@ -56,33 +62,30 @@ const userByGmail=async(email)=>{
       }
 }
 
-//Compare password with hash password
-
-const comparePass= async (enteredPassword, storedPasswordHash) => {
+// Compare password with hashed password
+const comparePass = async (enteredPassword, storedPasswordHash) => {
     try {
-     const isMatch =  await bcrypt.compare(enteredPassword, storedPasswordHash);
-    return isMatch;
+        const isMatch = await bcrypt.compare(enteredPassword, storedPasswordHash);
+        return isMatch;
     } catch (error) {
-      console.error('Error comparing passwords:', error);
-      throw error;
+        console.error('Error comparing passwords:', error);
+        throw error;
     }
-  };
+};
 
-
+// Update verification status
 const updateVerificationStatus = async (userId) => {
     try {
-      return  await pool.query('UPDATE users SET is_verified = TRUE WHERE id = $1', [userId]);
-    } catch (error) {                                    
+        return await pool.query('UPDATE users SET is_verified = TRUE WHERE id = $1', [userId]);
+    } catch (error) {
         console.error('Error updating verification status:', error);
         throw error;
     }
 };
 
-  
-
 module.exports = {
     updateVerificationStatus,
-    registerUser,
+    registerrUser,
     userById,
     userByGmail,
     comparePass,

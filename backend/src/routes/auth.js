@@ -1,21 +1,11 @@
-import express from "express";
-import {loginUser,registerUser} from "../controllers/userController";;
-const router=express.Router();
+const express = require("express");
+const { registerUser,loginUser } = require("../controllers/userController.js");
+const router = express.Router();
 
-router.post("/login",(req,res)=>{
-    res.send("Login route!")
-})
+router.post("/login",loginUser);
 
-router.post("/register",registerUser)
+router.post("/register", registerUser);
 
-<<<<<<< HEAD
-router.post("/hello",(req,res)=>{
-    res.send("hello route!")
-})
+router.post("/logout");
 
-=======
->>>>>>> 28d0f5a (Initial commit with front-end and backend folders)
-router.post("/logout",(req,res)=>{
-    res.send("Logout route!")
-})
-export default router;
+module.exports = router;
