@@ -1,6 +1,5 @@
 const pool = require("../config/db"); 
 
-// ✅ Helper function to check if a chat exists
 const chatExists = async (chat_id) => {
   const result = await pool.query("SELECT id FROM chats WHERE id = $1", [chat_id]);
   return result.rows.length > 0;
