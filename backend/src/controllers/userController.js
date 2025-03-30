@@ -1,4 +1,3 @@
-const express = require("express");
 const bcrypt = require("bcrypt");
 const userModel = require("../models/userModel.js");
 const {generateToken} =require("../middleware/jwtAuth.js")
