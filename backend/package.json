@@ -16,7 +16,7 @@
   "name": "server",
   "version": "1.0.0",
   "main": "src/app.js",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "dev": "nodemon scr/app.js",
     "start": "node app.js"
