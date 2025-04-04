@@ -17,10 +17,20 @@ app.use(cors());
 app.use(express.json()); // Parses JSON payloads in requests
 app.use(express.urlencoded({ extended: true })); // Parses URL-encoded data
 
+app.use("/chats", (req, res, next) => {
+    req.io = io;
+    next();
+  }, chatRouter);
+  
+  app.use("/messages", (req, res, next) => {
+    req.io = io;
+    next();
+  }, messageRouter);
+
 app.use("/api/users", router);
 app.use("/chats", chatRouter);
 app.use("/messages", messageRouter);
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
