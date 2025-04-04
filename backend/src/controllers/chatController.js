@@ -16,7 +16,7 @@ const createPrivateChat = async (req, res) => {
       // Create new private chat
       chat = await createChat('private', null, null, user1);
       
-      // Add both users as members
+      // Add both users as members in chat_members
       await addChatMembers(chat.id, user1, 'member');
       await addChatMembers(chat.id, user2, 'member');
     }
@@ -28,6 +28,7 @@ const createPrivateChat = async (req, res) => {
   }
 };
 
+//fetch the list of chats a user is a part of
 const getUserChatList = async (req, res) => {
   try {
     const { user_id } = req.params;

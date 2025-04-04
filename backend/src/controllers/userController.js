@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const userModel = require("../models/userModel.js");
-const {generateToken} =require("../middleware/jwtAuth.js")
+const {generateToken} =require("../middleware/jwtAuth.js");
+const { updateProfilePicture } = require("../models/userModel");
 
 const registerUser = async (req, res) => {
     console.log("Request body:", req.body);
@@ -78,9 +79,56 @@ const loginUser=async(req,res)=>{
    
 }
 
+// Get user profile by ID
+const getUserProfile = async (req, res) => {
+    try {
+        const { user_id } = req.params;
+        const user = await getUserById(user_id);
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        console.error("Error fetching user profile:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+// Update user profile picture
+
+
+// Update Profile Picture Only
+const uploadProfilePicture = async (req, res) => {
+    try {
+        console.log("Headers:", req.headers);
+        console.log("Request Body:", req.body);
+        console.log("Request File Object:", req.file); // Should contain file data
+        const { user_id } = req.params;
+
+        if (!req.file || !req.file.path) {
+            return res.status(400).json({ error: "Profile picture is required" });
+        }
+
+        const profile_pic_url = req.file.path; // Cloudinary URL
+
+        const updatedUser = await updateProfilePicture(user_id, profile_pic_url);
+
+        res.status(200).json({
+            message: "Profile picture updated successfully",
+            profile_pic: updatedUser.profile_pic
+        });
+    } catch (error) {
+        console.error("Error updating profile picture:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
 
 
 module.exports = {
     registerUser,
-    loginUser
+    loginUser,
+    getUserProfile,
+    uploadProfilePicture
 }

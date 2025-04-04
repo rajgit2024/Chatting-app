@@ -1,9 +1,9 @@
-const pool = require("../config/db"); 
-
-const chatExists = async (chat_id) => {
-  const result = await pool.query("SELECT id FROM chats WHERE id = $1", [chat_id]);
-  return result.rows.length > 0;
-};
+const {
+  chatExists,
+  insertMessage,
+  getMessages,
+  markMessagesAsRead,
+} = require("../models/messageModels.js");
 
 const sendMessage = async (req, res) => {
   try {
@@ -17,12 +17,9 @@ const sendMessage = async (req, res) => {
     if (!chatFound) {
       return res.status(404).json({ message: "Chat not found." });
     }
-    const newMessage = await pool.query(
-      "INSERT INTO messages (chat_id, sender_id, content) VALUES ($1, $2, $3) RETURNING *",
-      [chat_id, sender_id, content]
-    );
 
-    res.status(201).json(newMessage.rows[0]);
+    const newMessage = await insertMessage(chat_id, sender_id, content);
+    res.status(201).json(newMessage);
   } catch (error) {
     console.error("Error sending message:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -38,17 +35,10 @@ const getMessagesByChat = async (req, res) => {
       return res.status(404).json({ message: "Chat not found." });
     }
 
-    const messages = await pool.query(
-      "SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_at ASC",
-      [chat_id]
-    );
+    const messages = await getMessages(chat_id);
+    await markMessagesAsRead(chat_id);
 
-    await pool.query(
-      "UPDATE messages SET is_read = true WHERE chat_id = $1",
-      [chat_id]
-    );
-
-    res.status(200).json(messages.rows);
+    res.status(200).json(messages);
   } catch (error) {
     console.error("Error fetching messages:", error);
     res.status(500).json({ error: "Internal Server Error" });

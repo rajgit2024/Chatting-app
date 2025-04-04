@@ -34,7 +34,38 @@ const generateToken=(userData)=>{
     return jwt.sign(userData, process.env.JWT_KEY, { expiresIn: "1h" });
 }
 
+// Middleware to check if user is a group admin
+const groupAdminMiddleware = async (req, res, next) => {
+    const { chat_id } = req.params;
+    const user_id = req.user.id;
+
+    try {
+        const result = await pool.query(
+            "SELECT role FROM chat_members WHERE chat_id = $1 AND user_id = $2",
+            [chat_id, user_id]
+        );
+
+        if (result.rows.length === 0 || result.rows[0].role !== 'admin') {
+            return res.status(403).json({ message: "Access denied: Admins only" });
+        }
+
+        next();
+    } catch (error) {
+        return res.status(500).json({ error: "Database error" });
+    }
+};
+
+const verifyProfileOwner = (req, res, next) => {
+    const { user_id } = req.params;
+    if (parseInt(user_id) !== req.user.id) {
+        return res.status(403).json({ error: "Access denied: You can only modify your own profile" });
+    }
+    next();
+};
+
 module.exports={
     jwtAuthMiddleware,
-    generateToken
+    generateToken,
+    verifyProfileOwner,
+    groupAdminMiddleware
 }

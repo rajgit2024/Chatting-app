@@ -83,6 +83,34 @@ const updateVerificationStatus = async (userId) => {
     }
 };
 
+// Update user profile
+const updateUserProfileById = async (user_id, name, phone_number, profile_pic) => {
+    const result = await pool.query(
+        "UPDATE users SET name = $1, phone_number = $2, profile_pic = $3 WHERE id = $4 RETURNING id, name, email, phone_number, profile_pic",
+        [name, phone_number, profile_pic, user_id]
+    );
+    return result.rows[0];
+};
+
+// Get user profile by ID
+const getUserById = async (user_id) => {
+    const result = await pool.query(
+        "SELECT id, name, email, phone_number, profile_pic FROM users WHERE id = $1",
+        [user_id]
+    );
+    return result.rows[0];
+};
+
+//To update user profile picture
+const updateProfilePicture = async (user_id, profile_pic) => {
+    const result = await pool.query(
+        "UPDATE users SET profile_pic=$1 WHERE user_id=$2 RETURNING user_id, profile_pic",
+        [profile_pic, user_id]
+    );
+    return result.rows[0];
+};
+
+
 module.exports = {
     updateVerificationStatus,
     registerrUser,
@@ -91,4 +119,7 @@ module.exports = {
     comparePass,
     updatePassword,
     userPhone,
+    updateUserProfileById,
+    getUserById,
+    updateProfilePicture
 };
