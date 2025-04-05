@@ -31,7 +31,7 @@ const createPrivateChat = async (req, res) => {
 //fetch the list of chats a user is a part of
 const getUserChatList = async (req, res) => {
   try {
-    const { user_id } = req.params;
+    const user_id = req.user.id;
 
     if (!user_id) {
       return res.status(400).json({ error: "User ID is required" });

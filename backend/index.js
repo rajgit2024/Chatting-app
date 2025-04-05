@@ -12,6 +12,8 @@ const PORT = 5000;
 const server = http.createServer(app);
 const io = setupSocket(server);
 
+app.set("io", io);
+
 // Middleware
 app.use(cors());
 app.use(express.json()); // Parses JSON payloads in requests

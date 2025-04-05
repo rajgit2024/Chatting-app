@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
-
-const socket = io("http://localhost:5000"); // Connect to WebSocket server
 
 const ChatApp = () => {
   const [userId, setUserId] = useState(1);
@@ -11,71 +9,87 @@ const ChatApp = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
-  useEffect(() => {
-    if (userId) fetchChats();
-    socket.emit("userConnected", userId);
-  }, [userId]);
+  const socket = useRef();
 
+  // Connect socket only once
   useEffect(() => {
-    if (chatId) fetchMessages();
-    socket.emit("joinChat", chatId); // Join chat room for real-time updates
-  }, [chatId]);
-
-  useEffect(() => {
-    // Listen for new messages in real-time
-    socket.on("receiveMessage", (message) => {
-      if (message.chat_id === chatId) {
-        setMessages((prevMessages) => [...prevMessages, message]);
-      }
-    });
+    socket.current = io("http://localhost:5000");
+    socket.current.emit("userConnected", userId);
 
     return () => {
-      socket.off("receiveMessage"); // Cleanup listener on component unmount
+      socket.current.disconnect();
+    };
+  }, [userId]);
+
+  // Join selected chat room
+  useEffect(() => {
+    if (chatId && socket.current) {
+      socket.current.emit("joinChat", chatId);
+      fetchMessages(chatId);
+    }
+  }, [chatId]);
+
+  // Listen for real-time messages
+  useEffect(() => {
+    const handleReceive = (message) => {
+      if (message.chat_id === chatId) {
+        setMessages((prev) => [...prev, message]);
+      }
+    };
+
+    socket.current?.on("receiveMessage", handleReceive);
+
+    return () => {
+      socket.current?.off("receiveMessage", handleReceive);
     };
   }, [chatId]);
 
   const fetchChats = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/chats/${userId}`);
+      const res = await axios.get(`http://localhost:5000/api/chats/${userId}`);
       setChats(res.data);
-    } catch (error) {
-      console.error("Error fetching chats:", error);
+    } catch (err) {
+      console.error("Error fetching chats:", err);
     }
   };
 
-  const fetchMessages = async () => {
+  const fetchMessages = async (chatIdToFetch) => {
     try {
-      const res = await axios.get(`http://localhost:5000/messages/${chatId}`);
+      const res = await axios.get(`http://localhost:5000/api/messages/${chatIdToFetch}`);
       setMessages(res.data);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
+    } catch (err) {
+      console.error("Error fetching messages:", err);
     }
   };
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
+
     try {
-      const res = await axios.post("http://localhost:5000/messages/send", {
+      const res = await axios.post("http://localhost:5000/api/messages/send", {
         chat_id: chatId,
         sender_id: userId,
         content: newMessage,
       });
 
-      setMessages((prevMessages) => [...prevMessages, res.data]);
-      socket.emit("sendMessage", res.data); // Emit message to WebSocket
-
+      // We won't add the message locally here — it will come through the socket
       setNewMessage("");
-    } catch (error) {
-      console.error("Error sending message:", error);
+    } catch (err) {
+      console.error("Error sending message:", err);
     }
   };
+
+  // Initial fetch
+  useEffect(() => {
+    if (userId) fetchChats();
+  }, [userId]);
 
   return (
     <div className="chat-container">
       <div className="chat-list">
         {chats.map((chat) => (
-          <div key={chat.id} onClick={() => setChatId(chat.id)}>
-            {chat.name || "Private Chat"}
+          <div key={chat.id} onClick={() => setChatId(chat.id)} style={{ cursor: "pointer" }}>
+            <h4>Chat #{chat.id}</h4>
           </div>
         ))}
       </div>
