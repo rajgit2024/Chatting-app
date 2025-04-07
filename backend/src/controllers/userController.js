@@ -64,8 +64,7 @@ const loginUser=async(req,res)=>{
 
         const payload={
             email:user.email,
-            id:user.id,
-            role:user.role
+            id:user.id
         }
         console.log("The given payload is",payload);
         

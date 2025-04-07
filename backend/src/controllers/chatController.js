@@ -1,48 +1,60 @@
-const { findPrivateChat, createChat, addChatMembers, getUserChats } = require("../models/chatModel");
+const { findPrivateChat, createChat,createPrivateChat, addChatMember, getUserChats } = require("../models/chatModel");
 
-const createPrivateChat = async (req, res) => {
+const createGroupChat = async (req, res) => {
   try {
-    // Extract users from request body
-    const { user1, user2 } = req.body;
-    
-    if (!user1 || !user2) {
-      return res.status(400).json({ error: "Both user1 and user2 are required" });
+    const { name, isGroup, members } = req.body;
+    const createdBy = req.user.id; // INTEGER
+
+    const chat = await createChat(name, isGroup, createdBy);
+    await addChatMember(chat.id, createdBy, 'admin');
+
+    for (const memberId of members) {
+      if (memberId !== createdBy) {
+        await addChatMember(chat.id, memberId);
+      }
     }
 
-    // Check if a private chat already exists
-    let chat = await findPrivateChat(user1, user2);
-
-    if (!chat) {
-      // Create new private chat
-      chat = await createChat('private', null, null, user1);
-      
-      // Add both users as members in chat_members
-      await addChatMembers(chat.id, user1, 'member');
-      await addChatMembers(chat.id, user2, 'member');
-    }
-
-    return res.status(201).json(chat);
+    res.status(201).json({ message: 'Chat created successfully', chatId: chat.id });
   } catch (error) {
-    console.error("Error creating private chat:", error);
-    return res.status(500).json({ error: error.message });
+    console.error('Error in createChat:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-//fetch the list of chats a user is a part of
-const getUserChatList = async (req, res) => {
-  try {
-    const { user_id } = req.params;
+// Controller: Create or Get Private Chat
+const createOrGetPrivateChat = async (req, res) => {
+  const userId1 = req.user.id; // Authenticated user
+  const { userId2 } = req.body; // The user to chat with
 
-    if (!user_id) {
-      return res.status(400).json({ error: "User ID is required" });
+  try {
+    const existingChat = await findPrivateChat(userId1, userId2);
+
+    if (existingChat) {
+      return res.status(200).json(existingChat);
     }
 
-    const chats = await getUserChats(user_id);
-    return res.json(chats);
+    const newChat = await createPrivateChat(userId1);
+
+    // Insert both users into chat_members
+    await addChatMember(chat.id, userId1); // sender
+    await addChatMember(chat.id, userId2); // receiver
+    return res.status(201).json(newChat);
   } catch (error) {
-    console.error("Error getting user chats:", error);
-    return res.status(500).json({ error: error.message });
+    console.error('Error handling private chat:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-module.exports = { createPrivateChat, getUserChatList };
+
+// Get all chats for logged-in user
+const getUserChats = async (req, res) => {
+  try {
+    const chats = await getChatsByUserId(req.user.id);
+    res.json({ chats });
+  } catch (err) {
+    console.error("Error fetching chats", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+module.exports = { createOrGetPrivateChat, getUserChats,createGroupChat };

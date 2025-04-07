@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerUser,loginUser,uploadProfilePicture, } = require("../controllers/userController.js");
+const { registerUser,loginUser,uploadProfilePicture, getUserProfile, } = require("../controllers/userController.js");
 const {verifyProfileOwner,jwtAuthMiddleware}=require("../middleware/jwtAuth.js")
 const router = express.Router();
 const upload = require("../middleware/uploadMiddleware.js");
@@ -10,6 +10,7 @@ router.post("/register", registerUser);
 
 router.post("/logout");
 
+router.get("/profile",getUserProfile)
 router.put(
     "/profile/:user_id/picture",
     jwtAuthMiddleware, // Auth middleware
