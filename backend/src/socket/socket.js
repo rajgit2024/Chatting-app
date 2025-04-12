@@ -17,6 +17,10 @@ const setupSocket = (server) => {
     // When a user sends a message
     socket.on("sendMessage", async (message) => {
       const { chat_id, sender_id, content } = message;
+      if (!chat_id || !sender_id || !content?.trim()) {
+        return socket.emit("error", { message: "Invalid message data" });
+      }
+      
 
       try {
         const newMessage = await pool.query(
