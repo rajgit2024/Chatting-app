@@ -1,4 +1,4 @@
-const { findPrivateChat, createChat,createPrivateChat, addChatMember, getUserChats } = require("../models/chatModel");
+const { findPrivateChat, createChat,createPrivateChat, addChatMember } = require("../models/chatModel");
 
 const createGroupChat = async (req, res) => {
   try {
@@ -47,14 +47,14 @@ const createOrGetPrivateChat = async (req, res) => {
 
 
 // Get all chats for logged-in user
-const getUserChats = async (req, res) => {
+const getUserChatList = async (req, res) => {
   try {
     const chats = await getChatsByUserId(req.user.id);
-    res.json({ chats });
+    return res.json({ chats });
   } catch (err) {
     console.error("Error fetching chats", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
-module.exports = { createOrGetPrivateChat, getUserChats,createGroupChat };
+module.exports = { createOrGetPrivateChat, getUserChatList,createGroupChat };

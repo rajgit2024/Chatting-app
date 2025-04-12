@@ -1,4 +1,4 @@
-const pool = require('../db/pool');
+const pool = require('../config/db');
 
 const createChat = async (name, isGroup, createdBy) => {
   const result = await pool.query(
