@@ -4,7 +4,7 @@ const { jwtAuthMiddleware,groupAdminOnly} = require('../middleware/jwtAuth');
 
 const router = express.Router();
 
-router.post('/group', jwtAuthMiddleware,groupAdminOnly,createGroupChat);
+router.post('/group', jwtAuthMiddleware,createGroupChat);
 router.post('/private', jwtAuthMiddleware ,createOrGetPrivateChat);
 router.get('/',jwtAuthMiddleware, getUserChatList);
 

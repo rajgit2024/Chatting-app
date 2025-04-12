@@ -1,11 +1,20 @@
-const { findPrivateChat, createChat,createPrivateChat, addChatMember } = require("../models/chatModel");
+const { findPrivateChat, createChat,createPrivateChat, addChatMember,getChatsByUserId } = require("../models/chatModel");
 
 const createGroupChat = async (req, res) => {
   try {
+    console.log("Body received:", req.body);
+    console.log("User:", req.user);
+
     const { name, isGroup, members } = req.body;
-    const createdBy = req.user.id; // INTEGER
+    const createdBy = req.user.id;
+
+    if (!name || !Array.isArray(members)) {
+      return res.status(400).json({ error: "Name and members are required." });
+    }
 
     const chat = await createChat(name, isGroup, createdBy);
+    console.log("Chat created:", chat);
+
     await addChatMember(chat.id, createdBy, 'admin');
 
     for (const memberId of members) {
@@ -16,7 +25,7 @@ const createGroupChat = async (req, res) => {
 
     res.status(201).json({ message: 'Chat created successfully', chatId: chat.id });
   } catch (error) {
-    console.error('Error in createChat:', error);
+    console.error('Error in createGroupChat:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
@@ -36,8 +45,8 @@ const createOrGetPrivateChat = async (req, res) => {
     const newChat = await createPrivateChat(userId1);
 
     // Insert both users into chat_members
-    await addChatMember(chat.id, userId1); // sender
-    await addChatMember(chat.id, userId2); // receiver
+    await addChatMember(newChat.id, userId1); // sender
+    await addChatMember(newChat.id, userId2); // receiver
     return res.status(201).json(newChat);
   } catch (error) {
     console.error('Error handling private chat:', error);
