@@ -1,4 +1,5 @@
 const jwt=require("jsonwebtoken");
+const { isGroupAdmin } = require("../models/chatModel");
 
 const jwtAuthMiddleware = (req, res, next) => {
     const authorization = req.headers.authorization;
@@ -27,33 +28,31 @@ const jwtAuthMiddleware = (req, res, next) => {
 };
 
 
-//Generate krte wakt humme user ka payload chahiye; payload=userdate
-//Generate token ek function hai
-//Jisme ki payload or userDate and Secret key hota hai
 const generateToken=(userData)=>{
     return jwt.sign(userData, process.env.JWT_KEY, { expiresIn: "1h" });
 }
 
 // Middleware to check if user is a group admin
-const groupAdminMiddleware = async (req, res, next) => {
-    const { chat_id } = req.params;
+
+const groupAdminOnly = async (req, res, next) => {
+    const chat_id = req.params.chat_id || req.body.chat_id;
     const user_id = req.user.id;
-
-    try {
-        const result = await pool.query(
-            "SELECT role FROM chat_members WHERE chat_id = $1 AND user_id = $2",
-            [chat_id, user_id]
-        );
-
-        if (result.rows.length === 0 || result.rows[0].role !== 'admin') {
-            return res.status(403).json({ message: "Access denied: Admins only" });
-        }
-
-        next();
-    } catch (error) {
-        return res.status(500).json({ error: "Database error" });
+  
+    if (!chat_id) {
+      return res.status(400).json({ error: "Chat ID is required." });
     }
-};
+  
+    try {
+      const isAdmin = await isGroupAdmin(chat_id, user_id);
+      if (!isAdmin) {
+        return res.status(403).json({ error: "Access denied. Admins only." });
+      }
+      next();
+    } catch (error) {
+      console.error("Authorization error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };
 
 const verifyProfileOwner = (req, res, next) => {
     const { user_id } = req.params;
@@ -67,5 +66,5 @@ module.exports={
     jwtAuthMiddleware,
     generateToken,
     verifyProfileOwner,
-    groupAdminMiddleware
+    groupAdminOnly
 }

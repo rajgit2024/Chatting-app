@@ -6,6 +6,6 @@ const { jwtAuthMiddleware } = require("../middleware/jwtAuth");
 
 
 router.post('/send',jwtAuthMiddleware,sendMessage);
-router.get('/:chat_id',jwtAuthMiddleware,getMessagesByChat);
+router.get('/:chat_id/:id',jwtAuthMiddleware,getMessagesByChat);
 
 module.exports = router;

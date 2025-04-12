@@ -38,9 +38,15 @@ const addChatMember = async (chat_id, user_id, role = 'member') => {
   );
 };
 
+const isUserAdmin=async (chat_id,user_id)=>{
+  const result=await pool.query(`SELECT role FROM chat_members WHERE chat_id=$1 and user_id=$2`,[chat_id,user_id]);
+  return result.rows[0];
+}
+
 module.exports = {
   findPrivateChat,
   createPrivateChat,
   addChatMember,
-  createChat
+  createChat,
+  isUserAdmin
 };

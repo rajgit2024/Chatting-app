@@ -111,6 +111,7 @@ const updateProfilePicture = async (user_id, profile_pic) => {
 };
 
 
+
 module.exports = {
     updateVerificationStatus,
     registerrUser,
@@ -121,5 +122,5 @@ module.exports = {
     userPhone,
     updateUserProfileById,
     getUserById,
-    updateProfilePicture
+    updateProfilePicture,
 };
