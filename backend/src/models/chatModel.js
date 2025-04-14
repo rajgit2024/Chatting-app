@@ -43,10 +43,16 @@ const isUserAdmin=async (chat_id,user_id)=>{
   return result.rows[0];
 }
 
+const getChatsByUserId = async (userId) => { 
+  const result = await pool.query(` SELECT chats.* FROM chats INNER JOIN chat_members ON chats.id = chat_members.chat_id WHERE chat_members.user_id = $1 ORDER BY chats.created_at DESC `, [userId] );
+
+  return result.rows; 
+};
 module.exports = {
   findPrivateChat,
   createPrivateChat,
   addChatMember,
   createChat,
-  isUserAdmin
+  isUserAdmin,
+  getChatsByUserId
 };
