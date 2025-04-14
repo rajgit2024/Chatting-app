@@ -1,4 +1,4 @@
-const { findPrivateChat, createChat,createPrivateChat, addChatMember, getUserChats } = require("../models/chatModel");
+const { findPrivateChat, createChat,createPrivateChat, addChatMember } = require("../models/chatModel");
 
 const createGroupChat = async (req, res) => {
   try {

@@ -1,5 +1,7 @@
 const jwt=require("jsonwebtoken");
 const { isGroupAdmin } = require("../models/chatModel");
+const dotenv = require("dotenv");
+dotenv.config();
 
 const jwtAuthMiddleware = (req, res, next) => {
     const authorization = req.headers.authorization;
@@ -29,7 +31,7 @@ const jwtAuthMiddleware = (req, res, next) => {
 
 
 const generateToken=(userData)=>{
-    return jwt.sign(userData, process.env.JWT_KEY, { expiresIn: "1h" });
+    return jwt.sign(userData, process.env.JWT_KEY, { expiresIn: "2h" });
 }
 
 // Middleware to check if user is a group admin

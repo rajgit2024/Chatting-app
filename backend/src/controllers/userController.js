@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const userModel = require("../models/userModel.js");
 const {generateToken} =require("../middleware/jwtAuth.js");
 const { updateProfilePicture } = require("../models/userModel");
+const pool = require('../config/db');
 
 const registerUser = async (req, res) => {
     console.log("Request body:", req.body);

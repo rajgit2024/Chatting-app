@@ -1,132 +1,124 @@
-import axios from "axios";
-import React, { useState, useContext } from "react";
-import { MdPassword, MdEmail } from "react-icons/md";
-import { useNavigate } from "react-router-dom";
-import JwtDecode from "jwt-decode";
+import React, { useState } from "react"
+import { useNavigate, Link } from "react-router-dom"
 
-const Login = () => {
-  const [action] = useState("Login");
-  const [message, setMessage] = useState({ text: "", type: "" });
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+export default function Login() {
+  const navigate = useNavigate()
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+    e.preventDefault()
+    setIsLoading(true)
 
-    try {
-      const response = await axios.post(`${process.env.BACK_HOST}/api/users/login`, formData);
-      if (response.status === 200) {
-        const { token } = response.data;
-
-        if (!token) {
-          setMessage({ text: "No token received. Please try again.", type: "error" });
-          return;
-        }
-
-        // Store the token in localStorage
-        localStorage.setItem("token", token);
-
-        // Dispatch a custom event to notify RoleProvider
-        window.dispatchEvent(new Event("tokenChanged"));
-
-        // Decode token and redirect based on role
-        const decodedToken = JwtDecode(token);
-        const userRole = decodedToken.role;
-
-        if (userRole === "voter") {
-          navigate("/voter");
-        } else if (userRole === "admin") {
-          navigate("/admin");
-        } else {
-          setMessage({ text: "Unknown role. Contact support.", type: "error" });
-        }
-      }
-    } catch (error) {
-      if (error.response) {
-        setMessage({ text: error.response.data.message || "Login failed.", type: "error" });
-      } else {
-        setMessage({ text: "Network error. Please try again.", type: "error" });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleInput = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
+    // Simulated login delay
+    setTimeout(() => {
+      setIsLoading(false)
+      navigate("/chats")
+    }, 1000)
+  }
 
   return (
-    <div className="container flex justify-center items-center flex-col w-[470px] m-auto bg-zinc-50 pb-[20px] mt-8 rounded-2xl shadow-lg overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-      <div className="header flex justify-center flex-col items-center mt-[30px] w-[100%]">
-        <div className="text text-[30px] font-bold bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-blue-500">
-          {action}
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-chat-light to-white">
+      <div className="w-full max-w-md border border-chat-accent shadow-lg rounded-lg bg-white">
+        <div className="space-y-1 p-6">
+          <h2 className="text-2xl font-bold text-center text-chat-dark">Login</h2>
+          <p className="text-center text-sm text-chat-gray-500">
+            Enter your email and password to access your account
+          </p>
         </div>
-        <div className="underline w-[60px] h-[6px] bg-gradient-to-r from-black to-blue-500 rounded-md mb-[25px]"></div>
-      </div>
-      {message.text && (
-        <div
-          className={`px-2 ${
-            message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
-      <form
-        action="/login"
-        method="POST"
-        className="inputs flex flex-col mb-7 gap-6"
-        onSubmit={handleSubmit}
-      >
-        <div className="input flex items-center justify-center h-[80px] bg-[#eaeaea] w-[430px] border-r-4 gap-4 rounded-xl">
-          <MdEmail className="text-[25px] text-gray-700" />
-          <input
-            className="border-none bg-transparent h-[42px] w-[350px] p-2 text-[18px] outline-none"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleInput}
-            placeholder="Enter email"
-            autoComplete="email"
-            required
-          />
-        </div>
-        <div className="input flex items-center justify-center h-[80px] bg-[#eaeaea] w-[430px] border-r-4 gap-4 rounded-xl">
-          <MdPassword className="text-[25px] text-gray-700" />
-          <input
-            className="border-none bg-transparent h-[42px] w-[350px] p-2 text-[18px] outline-none"
-            name="password"
-            value={formData.password}
-            type="password"
-            placeholder="Enter password"
-            onChange={handleInput}
-            autoComplete="current-password"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-gradient-to-r from-blue-900 to-blue-700 px-8 py-2 rounded-full text-white font-semibold cursor-pointer hover:scale-105 transition-transform"
-        >
-          {isLoading ? "Logging in..." : "Login"}
-        </button>
-        <div className="flex justify-between">
-        <h2 className="flex gap-1">
-          <h3 className="font-[70px]">Don't have account?</h3>
-          <a className="text-blue-800" href="/register">Click here</a>
-        </h2>
-        </div>
-        </form>
-    </div>
-  );
-};
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 p-6">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-chat-gray-700 block">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                required
+                className="w-full text-sm border border-chat-gray-300 px-3 py-2 rounded focus:outline-none focus:border-chat-primary focus:ring-1 focus:ring-chat-primary"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="font-medium text-chat-gray-700">
+                  Password
+                </label>
+                <Link to="/forgot-password" className="text-sm text-chat-secondary hover:text-chat-primary">
+                  Forgot password?
+                </Link>
+              </div>
+              <input
+                id="password"
+                type="password"
+                required
+                className="w-full border border-chat-gray-300 px-3 py-2 rounded focus:outline-none focus:border-chat-primary focus:ring-1 focus:ring-chat-primary"
+              />
+            </div>
 
-export default Login;
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-chat-primary text-white py-2 rounded hover:bg-chat-dark transition-colors flex items-center justify-center"
+            >
+              {isLoading ? (
+                <>
+                  <svg
+                    className="mr-2 h-4 w-4 animate-spin text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                  Logging in...
+                </>
+              ) : (
+                "Login"
+              )}
+            </button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-chat-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-chat-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                className="border text-sm font-medium border-chat-gray-300 hover:bg-chat-light hover:text-chat-primary flex items-center justify-center py-2 rounded"
+              >
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="mr-2 h-4 w-4" />
+                Google
+              </button>
+              <button
+                type="button"
+                className="border text-sm font-medium border-chat-gray-300 hover:bg-chat-light hover:text-chat-primary flex items-center justify-center py-2 rounded"
+              >
+                <img src="https://www.svgrepo.com/show/512317/github-142.svg" alt="GitHub" className="mr-2 h-4 w-4" />
+                GitHub
+              </button>
+            </div>
+          </div>
+        </form>
+        <div className="flex justify-center p-4 border-t">
+          <p className="text-sm text-chat-gray-600">
+            Don't have an account?{" "}
+            <Link to="/register" className="font-medium text-chat-primary hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
