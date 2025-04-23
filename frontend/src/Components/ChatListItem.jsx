@@ -1,34 +1,175 @@
-import React from "react";
+import { useState } from "react"
+import { useChat } from "../contexts/ChatContext"
+import { useAuth } from "../contexts/AuthContext"
+import { Link } from "react-router-dom"
+import { Users, Settings, LogOut, Search, PlusCircle, X } from "lucide-react"
+import { format } from "date-fns"
+import CreateGroupChat from "./CreateGroupChat"
 
-const ChatListItem = ({ chat, onSelect, isActive }) => {
-  const { name, is_group, lastMessage } = chat;
+const ChatListItem = ({ onClose }) => {
+  const { user, logout } = useAuth()
+  const { chats, currentChat, setCurrentChat, loading } = useChat()
+  const [searchTerm, setSearchTerm] = useState("")
+  const [showNewGroupDialog, setShowNewGroupDialog] = useState(false)
+
+  const filteredChats = chats.filter((chat) => {
+    if (chat.is_group) {
+      return chat.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    } else {
+      const otherUser = chat.participants.find((p) => p.id !== user?.id)
+      return otherUser?.username.toLowerCase().includes(searchTerm.toLowerCase())
+    }
+  })
+
+  const handleChatSelect = (chat) => {
+    setCurrentChat(chat)
+    if (onClose) onClose()
+  }
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString)
+    const now = new Date()
+
+    if (date.toDateString() === now.toDateString()) {
+      return format(date, "HH:mm")
+    } else if (date.getFullYear() === now.getFullYear()) {
+      return format(date, "dd MMM")
+    } else {
+      return format(date, "dd/MM/yy")
+    }
+  }
 
   return (
-    <div
-      onClick={() => onSelect(chat)}
-      className={`flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-colors duration-200 shadow-sm ${
-        isActive ? "bg-blue-100" : "hover:bg-gray-100"
-      }`}
-    >
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold">
-          {is_group ? name[0].toUpperCase() : "👤"}
-        </div>
-        <div>
-          <h3 className="text-base font-semibold text-gray-900">{name}</h3>
-          {lastMessage && (
-            <p className="text-sm text-gray-500 truncate w-44">
-              {lastMessage.content}
-            </p>
+    <div className="flex flex-col h-full bg-white dark:bg-gray-950">
+      {/* Header */}
+      <div className="p-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+        <div className="flex items-center">
+          <h1 className="text-xl font-bold">Chats</h1>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="ml-2 md:hidden p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
           )}
         </div>
+        <button
+          onClick={() => setShowNewGroupDialog(true)}
+          className="p-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          <PlusCircle className="h-5 w-5" />
+        </button>
       </div>
-      <div className="text-xs text-gray-400">
-        {/* Replace with a formatted time if available */}
-        {lastMessage?.timestamp && new Date(lastMessage.timestamp).toLocaleTimeString()}
-      </div>
-    </div>
-  );
-};
 
-export default ChatListItem;
+      {/* Search */}
+      <div className="p-4">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search chats..."
+            className="w-full pl-8 pr-2 py-2 border rounded bg-transparent text-sm dark:border-gray-700 dark:text-white"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Chat list */}
+      <div className="flex-1 overflow-y-auto p-2">
+        {loading ? (
+          <div className="flex justify-center p-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : filteredChats.length > 0 ? (
+          filteredChats.map((chat) => {
+            const isActive = currentChat?.id === chat.id
+            const otherUser = chat.participants.find((p) => p.id !== user?.id)
+
+            return (
+              <div
+                key={chat.id}
+                onClick={() => handleChatSelect(chat)}
+                className={`flex items-center p-3 rounded-lg cursor-pointer mb-1 hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                  isActive ? "bg-gray-100 dark:bg-gray-800" : ""
+                }`}
+              >
+                {chat.is_group ? (
+                  <div className="relative flex items-center justify-center h-10 w-10 bg-green-500 text-white rounded-full">
+                    {chat.name?.charAt(0) || "G"}
+                    <div className="absolute -bottom-1 -right-1 bg-gray-200 dark:bg-gray-900 p-1 rounded-full">
+                      <Users className="h-3 w-3" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
+                    <img
+                      src={otherUser?.profile_pic || "/placeholder.svg"}
+                      alt={otherUser?.username}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+
+                <div className="ml-3 flex-1 overflow-hidden">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium truncate">
+                      {chat.is_group ? chat.name : otherUser?.username}
+                    </h3>
+                    {chat.last_message && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatTime(chat.last_message.created_at)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                    {chat.last_message
+                      ? `${chat.last_message.sender_id === user?.id ? "You: " : ""}${chat.last_message.content}`
+                      : "No messages yet"}
+                  </p>
+                </div>
+              </div>
+            )
+          })
+        ) : (
+          <div className="text-center p-4 text-gray-500 dark:text-gray-400">
+            {searchTerm ? "No chats found" : "No chats yet"}
+          </div>
+        )}
+      </div>
+
+      {/* User profile section */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
+              <img
+                src={user?.profile_pic || "/placeholder.svg"}
+                alt={user?.username}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="ml-3">
+              <p className="font-medium">{user?.username}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{user?.email}</p>
+            </div>
+          </div>
+          <div className="flex space-x-1">
+            <Link to="/profile" className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded">
+              <Settings className="h-5 w-5" />
+            </Link>
+            <button onClick={logout} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded">
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Group dialog modal */}
+      <CreateGroupChat open={showNewGroupDialog} onOpenChange={setShowNewGroupDialog} />
+    </div>
+  )
+}
+
+export default ChatListItem

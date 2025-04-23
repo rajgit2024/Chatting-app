@@ -5,10 +5,10 @@ const { updateProfilePicture } = require("../models/userModel");
 
 const registerUser = async (req, res) => {
     console.log("Request body:", req.body);
-    const { name, email, password, phone_number } = req.body;
+    const { username, email, password, phone_number } = req.body;
 
     // Ensure all required fields are provided
-    if (!name || !email || !password || !phone_number) {
+    if (!username || !email || !password || !phone_number) {
         return res.status(400).json({ message: 'All fields are required.' });
     }
 
@@ -29,7 +29,7 @@ const registerUser = async (req, res) => {
 
         // Create a new user in the database
         const newUser = await userModel.registerrUser(
-            name, email, hashPassword, phone_number
+            username, email, hashPassword, phone_number
         );
 
         // // Send a verification email to the newly registered user
@@ -95,8 +95,16 @@ const getUserProfile = async (req, res) => {
     }
 };
 
-// Update user profile picture
-
+const getUsers = async (req, res) => {
+    try {
+      const currentUserId = req.user.id;
+      const users = await userModel.getAllUsersExceptCurrent(currentUserId);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Server error while fetching users" });
+    }
+  };
 
 // Update Profile Picture Only
 const uploadProfilePicture = async (req, res) => {
@@ -129,5 +137,6 @@ module.exports = {
     registerUser,
     loginUser,
     getUserProfile,
-    uploadProfilePicture
+    uploadProfilePicture,
+    getUsers
 }

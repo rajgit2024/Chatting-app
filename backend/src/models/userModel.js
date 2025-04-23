@@ -3,11 +3,11 @@ const bcrypt = require("bcrypt");
 const pool = require("../config/db.js");
 
 // Add new user (hashed password)
-const registerrUser = async (name, email, hashPassword, phone_number) => {
+const registerrUser = async (username, email, hashPassword, phone_number) => {
     try {
         const result = await pool.query(
-            "INSERT INTO users (name, email, password, phone_number) VALUES ($1, $2, $3, $4) RETURNING *",
-            [name, email, hashPassword, phone_number]
+            "INSERT INTO users (username, email, password, phone_number) VALUES ($1, $2, $3, $4) RETURNING *",
+            [username, email, hashPassword, phone_number]
         );
         return result.rows[0];
     } catch (error) {
@@ -84,10 +84,10 @@ const updateVerificationStatus = async (userId) => {
 };
 
 // Update user profile
-const updateUserProfileById = async (user_id, name, phone_number, profile_pic) => {
+const updateUserProfileById = async (user_id, username, phone_number, profile_pic) => {
     const result = await pool.query(
-        "UPDATE users SET name = $1, phone_number = $2, profile_pic = $3 WHERE id = $4 RETURNING id, name, email, phone_number, profile_pic",
-        [name, phone_number, profile_pic, user_id]
+        "UPDATE users SET username = $1, phone_number = $2, profile_pic = $3 WHERE id = $4 RETURNING id, name, email, phone_number, profile_pic",
+        [username, phone_number, profile_pic, user_id]
     );
     return result.rows[0];
 };
@@ -95,7 +95,7 @@ const updateUserProfileById = async (user_id, name, phone_number, profile_pic) =
 // Get user profile by ID
 const getUserById = async (user_id) => {
     const result = await pool.query(
-        "SELECT id, name, email, phone_number, profile_pic FROM users WHERE id = $1",
+        "SELECT id, username, email, phone_number, profile_pic FROM users WHERE id = $1",
         [user_id]
     );
     return result.rows[0];
@@ -110,6 +110,14 @@ const updateProfilePicture = async (user_id, profile_pic) => {
     return result.rows[0];
 };
 
+const getAllUsersExceptCurrent = async (currentUserId) => {
+    const result = await pool.query(
+      "SELECT id, username, email FROM users WHERE id != $1",
+      [currentUserId]
+    );
+    return result.rows;
+  };
+
 
 
 module.exports = {
@@ -123,4 +131,5 @@ module.exports = {
     updateUserProfileById,
     getUserById,
     updateProfilePicture,
+    getAllUsersExceptCurrent
 };

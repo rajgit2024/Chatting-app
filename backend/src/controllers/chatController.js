@@ -22,8 +22,9 @@ const createGroupChat = async (req, res) => {
         await addChatMember(chat.id, memberId);
       }
     }
+    const fullChat = await getChatsByUserId(chat.id);
 
-    res.status(201).json({ message: 'Chat created successfully', chatId: chat.id });
+    res.status(201).json(fullChat); // 👈 return full chat object
   } catch (error) {
     console.error('Error in createGroupChat:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -59,7 +60,7 @@ const createOrGetPrivateChat = async (req, res) => {
 const getUserChatList = async (req, res) => {
   try {
     const chats = await getChatsByUserId(req.user.id);
-    return res.json({ chats });
+    return res.json(chats);
   } catch (err) {
     console.error("Error fetching chats", err);
     res.status(500).json({ error: "Internal server error" });

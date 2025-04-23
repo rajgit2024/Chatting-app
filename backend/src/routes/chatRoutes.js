@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post('/group', jwtAuthMiddleware,createGroupChat);
 router.post('/private', jwtAuthMiddleware ,createOrGetPrivateChat);
-router.get('/',jwtAuthMiddleware, getUserChatList);
+router.get('/get',jwtAuthMiddleware, getUserChatList);
 
 
 module.exports = router;
