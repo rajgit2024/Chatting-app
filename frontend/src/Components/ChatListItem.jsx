@@ -1,23 +1,29 @@
 import { useState } from "react"
+import { Search, PlusCircle, X, MessageSquarePlus, Users } from "lucide-react"
 import { useChat } from "../contexts/ChatContext"
 import { useAuth } from "../contexts/AuthContext"
-import { Link } from "react-router-dom"
-import { Users, Settings, LogOut, Search, PlusCircle, X } from "lucide-react"
 import { format } from "date-fns"
 import CreateGroupChat from "./CreateGroupChat"
+import NewPrivateChat from "./NewPrivateChat"
 
-const ChatListItem = ({ onClose }) => {
+const ChatList = ({ onClose }) => {
   const { user, logout } = useAuth()
-  const { chats, currentChat, setCurrentChat, loading } = useChat()
+  const { chats, currentChat, setCurrentChat, loading, getUnreadCount, getOtherUser } = useChat()
   const [searchTerm, setSearchTerm] = useState("")
   const [showNewGroupDialog, setShowNewGroupDialog] = useState(false)
+  const [showNewPrivateChatDialog, setShowNewPrivateChatDialog] = useState(false)
 
   const filteredChats = chats.filter((chat) => {
+    if (!chat) return false
+
     if (chat.is_group) {
       return chat.name?.toLowerCase().includes(searchTerm.toLowerCase())
     } else {
-      const otherUser = chat.participants.find((p) => p.id !== user?.id)
-      return otherUser?.username.toLowerCase().includes(searchTerm.toLowerCase())
+      // Get the other user in the chat
+      const otherUser = getOtherUser(chat)
+      if (!otherUser) return false
+
+      return otherUser.username?.toLowerCase().includes(searchTerm.toLowerCase())
     }
   })
 
@@ -27,6 +33,8 @@ const ChatListItem = ({ onClose }) => {
   }
 
   const formatTime = (dateString) => {
+    if (!dateString) return ""
+
     const date = new Date(dateString)
     const now = new Date()
 
@@ -46,20 +54,27 @@ const ChatListItem = ({ onClose }) => {
         <div className="flex items-center">
           <h1 className="text-xl font-bold">Chats</h1>
           {onClose && (
-            <button
-              onClick={onClose}
-              className="ml-2 md:hidden p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800"
-            >
+            <button onClick={onClose} className="ml-2 md:hidden p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800">
               <X className="h-5 w-5" />
             </button>
           )}
         </div>
-        <button
-          onClick={() => setShowNewGroupDialog(true)}
-          className="p-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          <PlusCircle className="h-5 w-5" />
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setShowNewPrivateChatDialog(true)}
+            className="p-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+            title="New private chat"
+          >
+            <MessageSquarePlus className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => setShowNewGroupDialog(true)}
+            className="p-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+            title="New group chat"
+          >
+            <PlusCircle className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -85,7 +100,8 @@ const ChatListItem = ({ onClose }) => {
         ) : filteredChats.length > 0 ? (
           filteredChats.map((chat) => {
             const isActive = currentChat?.id === chat.id
-            const otherUser = chat.participants.find((p) => p.id !== user?.id)
+            const otherUser = getOtherUser(chat)
+            const lastMessage = chat.last_message
 
             return (
               <div
@@ -105,8 +121,8 @@ const ChatListItem = ({ onClose }) => {
                 ) : (
                   <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
                     <img
-                      src={otherUser?.profile_pic || "/placeholder.svg"}
-                      alt={otherUser?.username}
+                      src={otherUser?.profile_pic || "/placeholder.svg?height=40&width=40"}
+                      alt={otherUser?.username || "User"}
                       className="h-full w-full object-cover"
                     />
                   </div>
@@ -115,19 +131,27 @@ const ChatListItem = ({ onClose }) => {
                 <div className="ml-3 flex-1 overflow-hidden">
                   <div className="flex justify-between items-center">
                     <h3 className="font-medium truncate">
-                      {chat.is_group ? chat.name : otherUser?.username}
+                      {chat.is_group ? chat.name : otherUser?.username || "Unknown User"}
                     </h3>
-                    {chat.last_message && (
+                    {lastMessage && (
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatTime(chat.last_message.created_at)}
+                        {formatTime(lastMessage.created_at)}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                    {chat.last_message
-                      ? `${chat.last_message.sender_id === user?.id ? "You: " : ""}${chat.last_message.content}`
-                      : "No messages yet"}
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[80%]">
+                      {lastMessage
+                        ? `${lastMessage.sender_id === user?.id ? "You: " : ""}${lastMessage.content}`
+                        : "No messages yet"}
+                    </p>
+
+                    {getUnreadCount && getUnreadCount(chat.id) > 0 && (
+                      <span className="bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {getUnreadCount(chat.id)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )
@@ -145,7 +169,7 @@ const ChatListItem = ({ onClose }) => {
           <div className="flex items-center">
             <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
               <img
-                src={user?.profile_pic || "/placeholder.svg"}
+                src={user?.profile_pic || "/placeholder.svg?height=40&width=40"}
                 alt={user?.username}
                 className="h-full w-full object-cover"
               />
@@ -155,21 +179,19 @@ const ChatListItem = ({ onClose }) => {
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{user?.email}</p>
             </div>
           </div>
-          <div className="flex space-x-1">
-            <Link to="/profile" className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded">
-              <Settings className="h-5 w-5" />
-            </Link>
-            <button onClick={logout} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded">
-              <LogOut className="h-5 w-5" />
-            </button>
-          </div>
+          <button onClick={logout} className="p-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded">
+            Logout
+          </button>
         </div>
       </div>
 
       {/* Group dialog modal */}
       <CreateGroupChat open={showNewGroupDialog} onOpenChange={setShowNewGroupDialog} />
+
+      {/* New private chat dialog */}
+      <NewPrivateChat isOpen={showNewPrivateChatDialog} onClose={() => setShowNewPrivateChatDialog(false)} />
     </div>
   )
 }
 
-export default ChatListItem
+export default ChatList

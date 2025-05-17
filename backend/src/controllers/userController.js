@@ -70,13 +70,39 @@ const loginUser=async(req,res)=>{
         
        const token=generateToken(payload);
        console.log("The Login token is",token);
-       return res.status(200).json({message:"Login Sucessfull",token:token});
+       return res.status(200).json({message:"Login Sucessfull",token:token,
+        user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        profile_pic: user.profile_pic, // if you have
+      },});
         } catch (error) {
         console.error('Error during login:', error);
         return res.status(500).send('Internal Server Error');
     }
    
 }
+
+//Helps to search users by query
+const handleUserSearch = async (req, res) => {
+    try {
+      const { query } = req.query;
+      const userId = req.user.id;
+  
+      if (!query || query.length < 2) {
+        return res
+          .status(400)
+          .json({ message: 'Search query must be at least 2 characters' });
+      }
+  
+      const users = await userModel.searchUsers(query, userId);
+      res.json(users);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  };
 
 // Get user profile by ID
 const getUserProfile = async (req, res) => {
@@ -138,5 +164,6 @@ module.exports = {
     loginUser,
     getUserProfile,
     uploadProfilePicture,
-    getUsers
+    getUsers,
+    handleUserSearch
 }

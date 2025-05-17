@@ -118,6 +118,19 @@ const getAllUsersExceptCurrent = async (currentUserId) => {
     return result.rows;
   };
 
+  //Search user by userId
+const searchUsers = async (query, userId) => {
+    const searchQuery = `
+      SELECT id, username, email, profile_pic 
+      FROM users 
+      WHERE (username ILIKE $1 OR email ILIKE $1) 
+      AND id != $2 
+      LIMIT 20
+    `;
+    const values = [`%${query}%`, userId];
+    const result = await pool.query(searchQuery, values);
+    return result.rows;
+  };
 
 
 module.exports = {
@@ -131,5 +144,6 @@ module.exports = {
     updateUserProfileById,
     getUserById,
     updateProfilePicture,
-    getAllUsersExceptCurrent
+    getAllUsersExceptCurrent,
+    searchUsers,
 };

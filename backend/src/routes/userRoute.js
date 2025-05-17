@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerUser,loginUser,uploadProfilePicture, getUserProfile,getUsers } = require("../controllers/userController.js");
+const { registerUser,loginUser,uploadProfilePicture, getUserProfile,handleUserSearch } = require("../controllers/userController.js");
 const {verifyProfileOwner,jwtAuthMiddleware}=require("../middleware/jwtAuth.js")
 const router = express.Router();
 const upload = require("../middleware/uploadMiddleware.js");
@@ -17,6 +17,6 @@ router.put(
     upload.single("profile_pic"),
     uploadProfilePicture // Controller function
 );
-router.get("/all",jwtAuthMiddleware,getUsers)
+router.get('/search', jwtAuthMiddleware, handleUserSearch);
 
 module.exports = router;

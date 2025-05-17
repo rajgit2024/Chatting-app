@@ -96,7 +96,21 @@ const Register = () => {
               required
             />
           </div>
-
+          <div>
+  <label htmlFor="phone_number" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+    Phone Number
+  </label>
+  <input
+    id="phone_number"
+    type="text"
+    name="phone_number"
+    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white dark:bg-gray-700 text-black dark:text-white"
+    placeholder="+91 1234567890"
+    value={phone_number}
+    onChange={(e) => setPhone_number(e.target.value)}
+    required
+  />
+</div>
           <button
             type="submit"
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition duration-200"

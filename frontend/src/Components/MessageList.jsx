@@ -1,11 +1,22 @@
-import { format } from "date-fns"
+"use client"
 
-const MessageList = ({ messages, currentUserId }) => {
+import { useEffect, useRef } from "react"
+import { format } from "date-fns"
+import { useAuth } from "../contexts/AuthContext"
+
+const MessageList = ({ messages }) => {
+  const { user } = useAuth()
+  const messagesEndRef = useRef(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
   const formatMessageTime = (dateString) => {
     return format(new Date(dateString), "HH:mm")
   }
 
-  // Group messages by sender and time gap
+  // Group messages by sender and time proximity
   const groupedMessages = messages.reduce((groups, message, index) => {
     const prevMessage = messages[index - 1]
 
@@ -22,38 +33,49 @@ const MessageList = ({ messages, currentUserId }) => {
     return groups
   }, [])
 
+  if (messages.length === 0) {
+    return (
+      <div className="flex flex-col h-full justify-center items-center text-gray-500 dark:text-gray-400">
+        <div className="text-center p-4">
+          <p className="mb-2">No messages yet</p>
+          <p className="text-sm">Start the conversation by sending a message</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       {groupedMessages.map((group, groupIndex) => {
-        const isCurrentUser = group[0].sender_id === currentUserId
+        const isCurrentUser = group[0].sender_id === user?.id
+
+        // Get sender info from message.sender or use fallbacks
+        const sender = group[0].sender || {}
+        const senderUsername = sender.username || (isCurrentUser ? "You" : "User")
+        const senderProfilePic = sender.profile_pic
 
         return (
           <div key={groupIndex} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
             <div className={`flex ${isCurrentUser ? "flex-row-reverse" : "flex-row"} max-w-[80%]`}>
-              {/* Avatar - only for other users */}
               {!isCurrentUser && (
                 <div className="h-8 w-8 mt-1 rounded-full overflow-hidden flex-shrink-0 bg-gray-300 text-center text-sm font-bold text-white flex items-center justify-center">
-                  {group[0].sender?.profile_pic ? (
+                  {senderProfilePic ? (
                     <img
-                      src={group[0].sender.profile_pic}
-                      alt={group[0].sender.username}
+                      src={senderProfilePic || "/placeholder.svg?height=32&width=32"}
+                      alt={senderUsername}
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    group[0].sender?.username?.charAt(0).toUpperCase()
+                    senderUsername.charAt(0).toUpperCase()
                   )}
                 </div>
               )}
 
               <div className={`flex flex-col ${isCurrentUser ? "items-end mr-2" : "items-start ml-2"}`}>
-                {/* Username - only show for others */}
                 {!isCurrentUser && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    {group[0].sender?.username}
-                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">{senderUsername}</span>
                 )}
 
-                {/* Messages in group */}
                 <div className="space-y-1">
                   {group.map((message, messageIndex) => (
                     <div key={message.id} className="flex items-end">
@@ -62,18 +84,15 @@ const MessageList = ({ messages, currentUserId }) => {
                           isCurrentUser
                             ? "bg-blue-500 text-white rounded-br-none"
                             : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-none"
-                        }`}
+                        } ${message.pending ? "opacity-70" : ""} ${message.failed ? "bg-red-300 dark:bg-red-800" : ""}`}
                       >
                         {message.content}
+                        {message.pending && <span className="ml-2 text-xs opacity-70">Sending...</span>}
+                        {message.failed && <span className="ml-2 text-xs text-red-500">Failed</span>}
                       </div>
 
-                      {/* Timestamp */}
                       {messageIndex === group.length - 1 && (
-                        <span
-                          className={`text-xs text-gray-500 dark:text-gray-400 ${
-                            isCurrentUser ? "mr-2" : "ml-2"
-                          }`}
-                        >
+                        <span className={`text-xs text-gray-500 dark:text-gray-400 ${isCurrentUser ? "mr-2" : "ml-2"}`}>
                           {formatMessageTime(message.created_at)}
                         </span>
                       )}
@@ -85,12 +104,7 @@ const MessageList = ({ messages, currentUserId }) => {
           </div>
         )
       })}
-
-      {messages.length === 0 && (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          No messages yet. Start the conversation!
-        </div>
-      )}
+      <div ref={messagesEndRef} />
     </div>
   )
 }

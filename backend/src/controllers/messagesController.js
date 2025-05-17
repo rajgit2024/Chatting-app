@@ -8,7 +8,8 @@ const {
 
 const sendMessage = async (req, res) => {
   try {
-    const { chat_id, content, sender_id } = req.body; 
+    const { chat_id, content } = req.body;
+    const sender_id = req.user.id;  // 👈 Automatically from JWT user!
     if (!chat_id || !content?.trim() || !sender_id) {
       return res.status(400).json({ message: "Chat ID, sender ID and content are required." });
     }

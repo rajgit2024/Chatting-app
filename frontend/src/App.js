@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
-import Login from "./pages/Login"
-import Register from "./pages/Register"
-import Profile from "./pages/Profile"
 import { AuthProvider } from "./contexts/AuthContext"
 import { ChatProvider } from "./contexts/ChatContext"
 import { SocketProvider } from "./contexts/SocketProvider"
-import PrivateRoute from "./components/PrivateRoute"
+import Login from "./pages/Login"
+import Register from "./pages/Register"
 import ChatDashboard from "./pages/ChatDashboard"
+import ProtectedRoute from "./components/ProtectedRoute"
+import UserProfile from "./pages/UserProfile"
 
 function App() {
   return (
@@ -14,29 +14,21 @@ function App() {
       <AuthProvider>
         <SocketProvider>
           <ChatProvider>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route
-                  path="/chat"
-                  element={
-                    <PrivateRoute>
-                      <ChatDashboard />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <PrivateRoute>
-                      <Profile />
-                    </PrivateRoute>
-                  }
-                />
-                <Route path="/" element={<Navigate to="/chat" replace />} />
-              </Routes>
-            </div>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+
+              {/* Protected routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/chat" element={<ChatDashboard />} />
+                {/* Add other protected routes here */}
+                <Route path="/profile" element={<UserProfile/>} />
+              </Route>
+
+              {/* Redirect to login by default */}
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
           </ChatProvider>
         </SocketProvider>
       </AuthProvider>

@@ -23,10 +23,10 @@ const findPrivateChat = async (userId1, userId2) => {
   return result.rows[0];
 };
 
-const createPrivateChat = async (createdBy) => {
+const createPrivateChat = async (createdByUserId) => {
   const result = await pool.query(
-    `INSERT INTO chats (is_group, created_by) VALUES (false, $1) RETURNING *`,
-    [createdBy]
+    `INSERT INTO chats (is_group, created_by) VALUES ($1, $2) RETURNING *`,
+    [false, createdByUserId] //  set isGroup to false explicitly
   );
   return result.rows[0];
 };
@@ -43,16 +43,78 @@ const isUserAdmin=async (chat_id,user_id)=>{
   return result.rows[0];
 }
 
-const getChatsByUserId = async (userId) => { 
-  const result = await pool.query(` SELECT chats.* FROM chats INNER JOIN chat_members ON chats.id = chat_members.chat_id WHERE chat_members.user_id = $1 ORDER BY chats.created_at DESC `, [userId] );
+const getChatsByUserId = async (userId) => {
+  const chatResult = await pool.query(`
+    SELECT chats.* 
+    FROM chats 
+    INNER JOIN chat_members ON chats.id = chat_members.chat_id 
+    WHERE chat_members.user_id = $1 
+    ORDER BY chats.created_at DESC
+  `, [userId]);
 
-  return result.rows; 
+  const chats = chatResult.rows;
+
+  // For each chat, fetch its members and include role
+  for (const chat of chats) {
+    const membersResult = await pool.query(`
+      SELECT users.id, users.username, chat_members.role
+      FROM users
+      INNER JOIN chat_members ON users.id = chat_members.user_id
+      WHERE chat_members.chat_id = $1
+    `, [chat.id]);
+
+    chat.members = membersResult.rows; // attach members with role
+  }
+
+  return chats;
 };
+
+const getChatMembers = async (chatId) => {
+  const result = await pool.query(
+    `
+    SELECT u.id, u.username, u.email, u.profile_pic
+    FROM users u
+    JOIN chat_members cm ON u.id = cm.user_id
+    WHERE cm.chat_id = $1
+  `,
+    [chatId],
+  )
+
+  return result.rows
+}
+
+// Get a chat by ID
+const getChatById = async (chatId) => {
+  const result = await pool.query(
+    `
+    SELECT * FROM chats WHERE id = $1
+  `,
+    [chatId],
+  )
+
+  return result.rows[0]
+}
+
+// Get user by ID
+const getUserById = async (userId) => {
+  const result = await pool.query(
+    `
+    SELECT id, username, email, profile_pic FROM users WHERE id = $1
+  `,
+    [userId],
+  )
+
+  return result.rows[0]
+}
+
 module.exports = {
   findPrivateChat,
   createPrivateChat,
   addChatMember,
   createChat,
   isUserAdmin,
-  getChatsByUserId
+  getChatById,
+  getChatsByUserId,
+  getChatMembers,
+  getUserById
 };
