@@ -1,14 +1,17 @@
+"use client"
+
 import { useState } from "react"
-import { Search, PlusCircle, X, MessageSquarePlus, Users } from "lucide-react"
 import { useChat } from "../contexts/ChatContext"
 import { useAuth } from "../contexts/AuthContext"
+import { Link } from "react-router-dom"
+import { Users, Settings, LogOut, Search, PlusCircle, X, MessageSquarePlus } from "lucide-react"
 import { format } from "date-fns"
 import CreateGroupChat from "./CreateGroupChat"
 import NewPrivateChat from "./NewPrivateChat"
 
-const ChatList = ({ onClose }) => {
+const ChatListItem = ({ onClose }) => {
   const { user, logout } = useAuth()
-  const { chats, currentChat, setCurrentChat, loading, getUnreadCount, getOtherUser } = useChat()
+  const { chats, currentChat, setCurrentChat, loading, getUnreadCount } = useChat()
   const [searchTerm, setSearchTerm] = useState("")
   const [showNewGroupDialog, setShowNewGroupDialog] = useState(false)
   const [showNewPrivateChatDialog, setShowNewPrivateChatDialog] = useState(false)
@@ -19,11 +22,20 @@ const ChatList = ({ onClose }) => {
     if (chat.is_group) {
       return chat.name?.toLowerCase().includes(searchTerm.toLowerCase())
     } else {
-      // Get the other user in the chat
-      const otherUser = getOtherUser(chat)
-      if (!otherUser) return false
+      // Check if participants exists and is an array
+      if (!Array.isArray(chat?.participants)) {
+        console.warn("chat.participants is not an array:", chat)
+        return false
+      }
 
-      return otherUser.username?.toLowerCase().includes(searchTerm.toLowerCase())
+      const otherUser = chat.participants.find((m) => m.id !== user?.id)
+
+      if (!otherUser) {
+        console.warn("No other user found in chat:", chat)
+        return false
+      }
+
+      return otherUser?.username?.toLowerCase().includes(searchTerm.toLowerCase())
     }
   })
 
@@ -33,8 +45,6 @@ const ChatList = ({ onClose }) => {
   }
 
   const formatTime = (dateString) => {
-    if (!dateString) return ""
-
     const date = new Date(dateString)
     const now = new Date()
 
@@ -100,8 +110,10 @@ const ChatList = ({ onClose }) => {
         ) : filteredChats.length > 0 ? (
           filteredChats.map((chat) => {
             const isActive = currentChat?.id === chat.id
-            const otherUser = getOtherUser(chat)
-            const lastMessage = chat.last_message
+
+            // Safely check if participants exists and is an array
+            const participants = Array.isArray(chat?.participants) ? chat.participants : []
+            const otherUser = participants.find((p) => p.id !== user?.id)
 
             return (
               <div
@@ -133,16 +145,16 @@ const ChatList = ({ onClose }) => {
                     <h3 className="font-medium truncate">
                       {chat.is_group ? chat.name : otherUser?.username || "Unknown User"}
                     </h3>
-                    {lastMessage && (
+                    {chat.last_message && (
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatTime(lastMessage.created_at)}
+                        {formatTime(chat.last_message.created_at)}
                       </span>
                     )}
                   </div>
                   <div className="flex justify-between items-center">
                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[80%]">
-                      {lastMessage
-                        ? `${lastMessage.sender_id === user?.id ? "You: " : ""}${lastMessage.content}`
+                      {chat.last_message
+                        ? `${chat.last_message.sender_id === user?.id ? "You: " : ""}${chat.last_message.content}`
                         : "No messages yet"}
                     </p>
 
@@ -179,9 +191,14 @@ const ChatList = ({ onClose }) => {
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{user?.email}</p>
             </div>
           </div>
-          <button onClick={logout} className="p-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded">
-            Logout
-          </button>
+          <div className="flex space-x-1">
+            <Link to="/profile" className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded">
+              <Settings className="h-5 w-5" />
+            </Link>
+            <button onClick={logout} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded">
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -194,4 +211,4 @@ const ChatList = ({ onClose }) => {
   )
 }
 
-export default ChatList
+export default ChatListItem

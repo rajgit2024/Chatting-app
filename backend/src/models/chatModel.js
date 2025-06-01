@@ -39,8 +39,7 @@ const addChatMember = async (chat_id, user_id, role = 'member') => {
 };
 
 const isUserAdmin=async (chat_id,user_id)=>{
-  const result=await pool.query(`SELECT role FROM chat_members WHERE chat_id=$1 and user_id=$2`,[chat_id,user_id]);
-  return result.rows[0];
+ 
 }
 
 const getChatsByUserId = async (userId) => {
@@ -107,6 +106,37 @@ const getUserById = async (userId) => {
   return result.rows[0]
 }
 
+const updateGroupChat = async (chat_id, name, group_pic) => {
+  const result = await pool.query(
+    "UPDATE chats SET name = $1, group_pic = $2 WHERE id = $3 RETURNING *",
+    [name, group_pic, chat_id]
+  );
+  return result.rows[0];
+};
+
+const isUserInGroup = async (chat_id, user_id) => {
+  const result = await pool.query(
+    "SELECT * FROM chat_members WHERE chat_id = $1 AND user_id = $2",
+    [chat_id, user_id]
+  );
+  return result.rows.length > 0;
+};
+
+const addUserToGroup = async (chat_id, user_id) => {
+  return await pool.query(
+    "INSERT INTO chat_members (chat_id, user_id) VALUES ($1, $2)",
+    [chat_id, user_id]
+  );
+};
+
+const removeUserFromGroup = async (chat_id, user_id) => {
+  const result = await pool.query(
+    "DELETE FROM chat_members WHERE chat_id = $1 AND user_id = $2 RETURNING *",
+    [chat_id, user_id]
+  );
+  return result.rowCount > 0;
+};
+
 module.exports = {
   findPrivateChat,
   createPrivateChat,
@@ -116,5 +146,9 @@ module.exports = {
   getChatById,
   getChatsByUserId,
   getChatMembers,
-  getUserById
+  getUserById,
+   updateGroupChat,
+  isUserInGroup,
+  addUserToGroup,
+  removeUserFromGroup,
 };

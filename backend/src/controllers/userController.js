@@ -2,6 +2,8 @@ const bcrypt = require("bcrypt");
 const userModel = require("../models/userModel.js");
 const {generateToken} =require("../middleware/jwtAuth.js");
 const { updateProfilePicture } = require("../models/userModel");
+const cloudinary = require("../config/cloudinary")
+const pool=require("../config/db.js");
 
 const registerUser = async (req, res) => {
     console.log("Request body:", req.body);
@@ -132,38 +134,76 @@ const getUsers = async (req, res) => {
     }
   };
 
-// Update Profile Picture Only
-const uploadProfilePicture = async (req, res) => {
+// Upload Profile Image & Update Database
+const uploadProfileImage = async (req, res) => {
     try {
-        console.log("Headers:", req.headers);
-        console.log("Request Body:", req.body);
-        console.log("Request File Object:", req.file); // Should contain file data
-        const { user_id } = req.params;
-
-        if (!req.file || !req.file.path) {
-            return res.status(400).json({ error: "Profile picture is required" });
-        }
-
-        const profile_pic_url = req.file.path; // Cloudinary URL
-
-        const updatedUser = await updateProfilePicture(user_id, profile_pic_url);
-
-        res.status(200).json({
-            message: "Profile picture updated successfully",
-            profile_pic: updatedUser.profile_pic
-        });
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+  
+      const filePath = `/uploads/${req.file.filename}`; // Store image path
+      const userId = req.user.id; // Get user ID from JWT middleware
+  
+      // Update the user's profile_image in PostgreSQL
+      const result = await pool.query(
+        "UPDATE users SET profile_pic = $1 WHERE id = $2 RETURNING profile_pic",
+        [filePath, userId]
+      );
+  
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      res.json({
+        message: "Profile image uploaded successfully!",
+        filePath,
+      });
+  
     } catch (error) {
-        console.error("Error updating profile picture:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+      console.error("Error uploading profile image:", error);
+      res.status(500).json({ message: "Server error" });
     }
-};
+  };
 
+//  const updateProfile = async (req, res) => {
+//   try {
+//     const { profilePic } = req.body;
+//     const userId = req.user_id; // assuming user_id is set by auth middleware
+
+//     if (!profilePic) {
+//       return res.status(400).json({ message: "Profile pic is required" });
+//     }
+
+//     // Upload image to Cloudinary
+//     const uploadResponse = await cloudinary.uploader.upload(profilePic);
+
+//     // Update in PostgreSQL
+//     const query = `
+//       UPDATE users
+//       SET profile_pic = $1
+//       WHERE id = $2
+//       RETURNING id, username, email, profile_pic;
+//     `;
+//     const values = [uploadResponse.secure_url, userId];
+
+//     const result = await pool.query(query, values);
+
+//     if (result.rows.length === 0) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     res.status(200).json(result.rows[0]);
+//   } catch (error) {
+//     console.error("Error in update profile:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
 
 module.exports = {
     registerUser,
     loginUser,
     getUserProfile,
-    uploadProfilePicture,
+    uploadProfileImage,
     getUsers,
-    handleUserSearch
+    handleUserSearch,
 }

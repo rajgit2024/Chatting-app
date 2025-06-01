@@ -1,30 +1,89 @@
-import React, { useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { IoPerson, IoAddCircle } from "react-icons/io5";
 import { TbArrowBackUp } from "react-icons/tb";
+import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const UserProfile = () => {
-  const { user, updateProfilePicture, logout, loading } = useAuth();
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+useEffect(() => {
+  const checkToken = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+  checkToken(); // initial
+  const interval = setInterval(checkToken, 1000); // recheck every second
+
+  return () => clearInterval(interval);
+}, []);
+
+
+  const fetchDetail = async () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/user/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setUser(response.data);
+      } catch (error) {
+        console.error("Error while fetching profile:", error);
+        localStorage.removeItem("token");
+        navigate("/login");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setLoading(false);
+      navigate("/login");
+    }
+  };
+
+  const handleImageChange = (e) => {
+    if (e.target.files.length > 0) {
+      setSelectedImage(e.target.files[0]);
+    }
+  };
+
+  const handleImageUpload = async () => {
+    if (!selectedImage) {
+      alert("Please select an image first");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("profile_pic", selectedImage);
+
     try {
-      await updateProfilePicture(selectedFile);
-      alert("Profile picture updated!");
-      setSelectedFile(null);
-      setPreviewUrl(null);
-    } catch (err) {
-      alert("Failed to update profile picture");
+      const response = await axios.post(
+        `http://localhost:5000/api/user/upload-profile-image`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert("Profile image uploaded successfully!");
+      setSelectedImage(null);
+      fetchDetail();
+    } catch (error) {
+      console.error("Error while uploading image:", error);
+      alert("Failed to upload image");
     }
   };
 
@@ -47,7 +106,7 @@ const UserProfile = () => {
         <div className="mt-6 flex flex-col items-center">
           <div className="relative">
             <img
-              src={previewUrl || user?.profile_pic || "https://via.placeholder.com/150"}
+              src={ user?.profile_pic || "https://via.placeholder.com/150"}
               alt="Profile"
               className="rounded-full border-4 border-blue-500 w-44 h-44 shadow-lg transition-transform hover:scale-105"
             />
@@ -59,7 +118,7 @@ const UserProfile = () => {
               id="imageInput"
               type="file"
               accept="image/*"
-              onChange={handleFileChange}
+              onChange={handleImageChange}
               className="hidden"
             />
           </div>
@@ -94,7 +153,7 @@ const UserProfile = () => {
         <div className="mt-6 px-6 text-center">
           <button
             className="bg-blue-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-blue-600 hover:scale-105 transition font-semibold"
-            onClick={handleUpload}
+            onClick={handleImageUpload}
           >
             Upload Image
           </button>

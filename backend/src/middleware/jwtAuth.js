@@ -1,5 +1,5 @@
 const jwt=require("jsonwebtoken");
-const { isGroupAdmin } = require("../models/chatModel");
+const { isGroupAdmin } = require("../models/userModel");
 
 const jwtAuthMiddleware = (req, res, next) => {
     const authorization = req.headers.authorization;
@@ -36,6 +36,10 @@ const generateToken=(userData)=>{
 
 const groupAdminOnly = async (req, res, next) => {
     const chat_id = req.params.chat_id || req.body.chat_id;
+
+     if (!req.user || !req.user.id) {
+    return res.status(401).json({ error: "Unauthorized user." });
+  }
     const user_id = req.user.id;
   
     if (!chat_id) {

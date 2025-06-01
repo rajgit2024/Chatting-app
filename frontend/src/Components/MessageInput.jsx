@@ -51,8 +51,7 @@ const MessageInput = () => {
       inputRef.current?.focus()
     } catch (error) {
       console.error("Failed to send message:", error)
-      // Restore the message if sending failed
-      setMessage(message)
+      // Don't restore the message if sending failed - let the user try again
     } finally {
       setIsSending(false)
     }

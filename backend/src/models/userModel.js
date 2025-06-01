@@ -102,13 +102,39 @@ const getUserById = async (user_id) => {
 };
 
 //To update user profile picture
-const updateProfilePicture = async (user_id, profile_pic) => {
-    const result = await pool.query(
-        "UPDATE users SET profile_pic=$1 WHERE user_id=$2 RETURNING user_id, profile_pic",
-        [profile_pic, user_id]
-    );
-    return result.rows[0];
-};
+// const updateProfilePicture = async (user_id, profile_pic) => {
+//     const result = await pool.query(
+//         "UPDATE users SET profile_pic=$1 WHERE user_id=$2 RETURNING user_id, profile_pic",
+//         [profile_pic, user_id]
+//     );
+//     return result.rows[0];
+// };
+
+  const updateProfilePicture = async(userId, profilePicUrl, cloudinaryId) =>{
+    try {
+      const query = `
+        UPDATE users 
+        SET profile_pic = $1, cloudinary_id = $2
+        WHERE id = $3 
+        RETURNING id, username, email, profile_pic, cloudinary_id
+      `
+      const result = await pool.query(query, [profilePicUrl, cloudinaryId, userId])
+      return result.rows[0] || null
+    } catch (error) {
+      throw new Error("Error updating profile picture: " + error.message)
+    }
+  }
+
+  // Get user's current cloudinary_id (for deletion)
+  const getCloudinaryId = async(userId) =>{
+    try {
+      const query = "SELECT cloudinary_id FROM users WHERE id = $1"
+      const result = await pool.query(query, [userId])
+      return result.rows[0]?.cloudinary_id || null
+    } catch (error) {
+      throw new Error("Error fetching cloudinary ID: " + error.message)
+    }
+  }
 
 const getAllUsersExceptCurrent = async (currentUserId) => {
     const result = await pool.query(
@@ -132,6 +158,18 @@ const searchUsers = async (query, userId) => {
     return result.rows;
   };
 
+  const isGroupAdmin = async (chat_id, user_id) => {
+  const query=`SELECT role FROM chat_members WHERE chat_id=$1 and user_id=$2`
+
+  try {
+    const result = await pool.query(query, [chat_id, user_id]);
+    return result.rowCount > 0; // true if user is admin
+  } catch (err) {
+    console.error("DB error in isGroupAdmin:", err);
+    throw err;
+  }
+};
+
 
 module.exports = {
     updateVerificationStatus,
@@ -146,4 +184,6 @@ module.exports = {
     updateProfilePicture,
     getAllUsersExceptCurrent,
     searchUsers,
+    isGroupAdmin,
+    getCloudinaryId,
 };

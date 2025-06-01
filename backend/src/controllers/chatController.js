@@ -1,7 +1,11 @@
 const { findPrivateChat, createChat,createPrivateChat, addChatMember,  getChatById,
   getChatMembers,
   getChatsByUserId,
-  getUserById, } = require("../models/chatModel");
+  getUserById,
+ updateGroupChat,
+  isUserInGroup,
+  addUserToGroup,
+  removeUserFromGroup, } = require("../models/chatModel");
 
   const createGroupChat = async (req, res) => {
     try {
@@ -130,4 +134,75 @@ const getUserChatList = async (req, res) => {
   }
 };
 
-module.exports = { createOrGetPrivateChat, getUserChatList,createGroupChat };
+const updateGroupChatDetails = async (req, res) => {
+  const { chat_id } = req.params;
+  const { name, group_pic } = req.body;
+  const user_id = req.user.id;
+
+  try {
+    const chat = await getChatById(chat_id);
+    if (!chat || !chat.is_group) return res.status(404).json({ message: "Group chat not found" });
+
+    if (chat.admin_id !== user_id)
+      return res.status(403).json({ message: "Only admin can update group chat" });
+
+    const updatedChat = await updateGroupChat(chat_id, name, group_pic);
+    res.status(200).json({ message: "Group updated", chat: updatedChat });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+//Help admin to add user in the group
+const addUsersToGroup = async (req, res) => {
+  const { chat_id } = req.params;
+  const { user_id_to_add } = req.body;
+
+  try {
+    const chat = await getChatById(chat_id);
+    if (!chat || !chat.is_group) return res.status(404).json({ message: "Group not found" });
+
+    const exists = await isUserInGroup(chat_id, user_id_to_add);
+    if (exists) return res.status(400).json({ message: "User already in group" });
+
+    await addUserToGroup(chat_id, user_id_to_add);
+    res.status(200).json({ message: "User added to group" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+//Help admin to remove user from the group
+const removeUsersFromGroup = async (req, res) => {
+  const { chat_id } = req.params;
+  const { user_id_to_remove } = req.body;
+  const user_id = req.user.id;
+
+  try {
+    const chat = await getChatById(chat_id);
+    if (!chat || !chat.is_group) return res.status(404).json({ message: "Group not found" });
+
+    // if (chat.admin_id !== user_id)
+    //   return res.status(403).json({ message: "Only admin can remove users" });
+
+    const removed = await removeUserFromGroup(chat_id, user_id_to_remove);
+    if (!removed) return res.status(400).json({ message: "User not in group" });
+
+    res.status(200).json({ message: "User removed from group" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+module.exports = {
+   createOrGetPrivateChat,
+   getUserChatList,
+  createGroupChat,
+    updateGroupChatDetails,
+  addUsersToGroup,
+  removeUsersFromGroup,
+ };

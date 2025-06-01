@@ -194,10 +194,12 @@ export const AuthProvider = ({ children }) => {
     formData.append("profile_pic", file)
 
     try {
-      const res = await axios.put(`/api/users/profile/${user.id}/picture`, formData, {
+      const res = await axios.put(`http://localhost:5000/api/users/profile-update`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+           Authorization: `Bearer ${localStorage.getItem("token")}`
         },
+        
       })
 
       console.log("Profile picture updated successfully:", res.data.profile_pic)
