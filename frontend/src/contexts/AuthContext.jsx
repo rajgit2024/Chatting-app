@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
       console.log("Attempting login for:", email)
-      const res = await axios.post("/api/users/login", { email, password })
+      const res = await axios.post("http://localhost:5000/api/users/login", { email, password })
       const { token: newToken, user: userData } = res.data
 
       console.log("Login successful, user data:", userData)

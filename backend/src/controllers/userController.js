@@ -47,43 +47,58 @@ const registerUser = async (req, res) => {
     }
 };
 
-const loginUser=async(req,res)=>{
-    const{email,password}=req.body;
-    try {
-        const user=await userModel.userByGmail(email);
-        console.log("Retriev user",user);
-        // if(!user.is_verified){
-        //     console.log(`Verify your email to login`);
-        //     return res.status(500).json({message:"Email is not verified!"})
-        // } 
-        
-        if(!user){
-          return res.status(404).send("User not found")
-        } 
-        const isMatch=await userModel.comparePass(password,user.password);
-        console.log('Password match:', isMatch);
-        if (!isMatch) return res.status(401).send("Password not match!");
+const loginUser = async (req, res) => {
+  const { email, password } = req.body
+  try {
+    const user = await userModel.userByGmail(email)
+    console.log("Retrieved user", user)
 
-        const payload={
-            email:user.email,
-            id:user.id
-        }
-        console.log("The given payload is",payload);
-        
-       const token=generateToken(payload);
-       console.log("The Login token is",token);
-       return res.status(200).json({message:"Login Sucessfull",token:token,
-        user: {
+    if (!user) {
+      return res.status(404).send("User not found")
+    }
+
+    const isMatch = await userModel.comparePass(password, user.password)
+    console.log("Password match:", isMatch)
+    if (!isMatch) return res.status(401).send("Password not match!")
+
+    const payload = {
+      email: user.email,
+      id: user.id,
+    }
+    console.log("The given payload is", payload)
+
+    const token = generateToken(payload)
+    console.log("The Login token is", token)
+
+    // IMPORTANT: Convert relative path to full URL
+    let profilePicUrl = null
+    if (user.profile_pic) {
+      // If it starts with /uploads, create full URL
+      if (user.profile_pic.startsWith("/uploads")) {
+        profilePicUrl = `http://localhost:5000${user.profile_pic}`
+      } else {
+        // If it's just a filename, add the full path
+        profilePicUrl = `http://localhost:5000/uploads/${user.profile_pic}`
+      }
+    }
+
+    console.log("Original profile_pic from DB:", user.profile_pic)
+    console.log("Full profile_pic URL:", profilePicUrl)
+
+    return res.status(200).json({
+      message: "Login Successful",
+      token: token,
+      user: {
         id: user.id,
         username: user.username,
         email: user.email,
-        profile_pic: user.profile_pic, // if you have
-      },});
-        } catch (error) {
-        console.error('Error during login:', error);
-        return res.status(500).send('Internal Server Error');
-    }
-   
+        profile_pic: profilePicUrl, // Send full URL instead of relative path
+      },
+    })
+  } catch (error) {
+    console.error("Error during login:", error)
+    return res.status(500).send("Internal Server Error")
+  }
 }
 
 //Helps to search users by query
@@ -110,7 +125,7 @@ const handleUserSearch = async (req, res) => {
 const getUserProfile = async (req, res) => {
     try {
         const { user_id } = req.params;
-        const user = await getUserById(user_id);
+        const user = await userModel.userById(user_id);
 
         if (!user) {
             return res.status(404).json({ error: "User not found" });
@@ -136,34 +151,51 @@ const getUsers = async (req, res) => {
 
 // Upload Profile Image & Update Database
 const uploadProfileImage = async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-  
-      const filePath = `/uploads/${req.file.filename}`; // Store image path
-      const userId = req.user.id; // Get user ID from JWT middleware
-  
-      // Update the user's profile_image in PostgreSQL
-      const result = await pool.query(
-        "UPDATE users SET profile_pic = $1 WHERE id = $2 RETURNING profile_pic",
-        [filePath, userId]
-      );
-  
-      if (result.rowCount === 0) {
-        return res.status(404).json({ message: "User not found" });
-      }
-  
-      res.json({
-        message: "Profile image uploaded successfully!",
-        filePath,
-      });
-  
-    } catch (error) {
-      console.error("Error uploading profile image:", error);
-      res.status(500).json({ message: "Server error" });
+  try {
+    console.log("=== UPLOAD PROFILE IMAGE DEBUG ===")
+    console.log("User from JWT:", req.user)
+    console.log("File received:", req.file)
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" })
     }
-  };
+
+    // IMPORTANT: Store just the filename in the database path
+    // This should match how your static files are served
+    const filePath = `/uploads/${req.file.filename}`
+    const userId = req.user.id
+
+    console.log("File saved to:", req.file.path)
+    console.log("Database file path:", filePath)
+    console.log("User ID:", userId)
+
+    // Update the user's profile_pic in PostgreSQL
+    const result = await pool.query("UPDATE users SET profile_pic = $1 WHERE id = $2 RETURNING profile_pic", [
+      filePath,
+      userId,
+    ])
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    console.log("Database updated successfully")
+    console.log("New profile_pic value:", result.rows[0].profile_pic)
+
+    // Return the complete URL for the frontend
+    const fullUrl = `http://localhost:${process.env.PORT || 5000}${filePath}`
+
+    res.json({
+      message: "Profile image uploaded successfully!",
+      filePath,
+      fullUrl,
+      filename: req.file.filename,
+    })
+  } catch (error) {
+    console.error("Error uploading profile image:", error)
+    res.status(500).json({ message: "Server error" })
+  }
+}
 
 //  const updateProfile = async (req, res) => {
 //   try {

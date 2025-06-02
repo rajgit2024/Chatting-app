@@ -1,124 +1,83 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import { io } from "socket.io-client"
 import { useAuth } from "./AuthContext"
 
 const SocketContext = createContext()
 
-export const useSocket = () => useContext(SocketContext)
+export const useSocket = () => {
+  const context = useContext(SocketContext)
+  if (!context) {
+    throw new Error("useSocket must be used within a SocketProvider")
+  }
+  return context
+}
 
 export const SocketProvider = ({ children }) => {
-  const { user, isAuthenticated, token } = useAuth()
   const [socket, setSocket] = useState(null)
   const [connected, setConnected] = useState(false)
-  const [onlineUsers, setOnlineUsers] = useState([])
+  const { user, isAuthenticated } = useAuth()
 
-  // Debug logging
-  const debugLog = useCallback((message, data = null) => {
-    const timestamp = new Date().toISOString().split("T")[1].split(".")[0]
-    console.log(`[${timestamp}] [Socket] ${message}`, data || "")
-  }, [])
-
-  // Initialize socket connection
   useEffect(() => {
-    if (!isAuthenticated || !user || !token) {
-      debugLog("Not authenticated, not connecting socket")
-      if (socket) {
-        debugLog("Disconnecting existing socket")
-        socket.disconnect()
-        setSocket(null)
-        setConnected(false)
-      }
+    // Only connect if user is authenticated
+    if (!isAuthenticated || !user) {
+      console.log("Socket: User not authenticated, skipping connection")
       return
     }
 
-    debugLog("Initializing socket connection...")
-    const socketInstance = io("http://localhost:5000", {
-      auth: {
-        token,
-        user: user, // Send the entire user object for identification
+    console.log("Socket: Attempting to connect...")
+
+    // Create socket connection with error handling
+    const newSocket = io("http://localhost:5000", {
+      transports: ["websocket", "polling"],
+      timeout: 20000,
+      forceNew: true,
+      query: {
+        userId: user.id,
       },
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      auth: {
+        user: user,
+      },
     })
 
-    socketInstance.on("connect", () => {
-      debugLog("Socket connected with ID:", socketInstance.id)
+    // Connection event handlers
+    newSocket.on("connect", () => {
+      console.log("Socket: Connected successfully")
       setConnected(true)
 
-      // Explicitly identify this user to the server
-      socketInstance.emit("identify", { userId: user.id })
+      // Identify user to server
+      newSocket.emit("identify", { userId: user.id })
     })
 
-    socketInstance.on("disconnect", (reason) => {
-      debugLog("Socket disconnected:", reason)
+    newSocket.on("disconnect", (reason) => {
+      console.log("Socket: Disconnected:", reason)
       setConnected(false)
     })
 
-    socketInstance.on("connect_error", (error) => {
-      debugLog("Socket connection error:", error.message)
+    newSocket.on("connect_error", (error) => {
+      console.log("Socket: Connection error:", error.message)
       setConnected(false)
     })
 
-    socketInstance.on("error", (error) => {
-      debugLog("Socket error:", error)
+    newSocket.on("error", (error) => {
+      console.log("Socket: Error:", error)
     })
 
-    // Listen for online users
-    socketInstance.on("activeUsers", (users) => {
-      debugLog("Received active users:", users)
-      setOnlineUsers(users)
-    })
+    setSocket(newSocket)
 
-    socketInstance.on("userOnline", (userId) => {
-      debugLog(`User ${userId} is online`)
-      setOnlineUsers((prev) => {
-        if (prev.includes(userId)) return prev
-        return [...prev, userId]
-      })
-    })
-
-    socketInstance.on("userOffline", (userId) => {
-      debugLog(`User ${userId} is offline`)
-      setOnlineUsers((prev) => prev.filter((id) => id !== userId))
-    })
-
-    // Listen for debug messages from server
-    socketInstance.on("debug", (message) => {
-      debugLog("Server debug:", message)
-    })
-
-    setSocket(socketInstance)
-
+    // Cleanup on unmount or user change
     return () => {
-      debugLog("Cleaning up socket connection")
-      socketInstance.disconnect()
+      console.log("Socket: Cleaning up connection")
+      newSocket.disconnect()
+      setSocket(null)
+      setConnected(false)
     }
-  }, [isAuthenticated, user, token, debugLog])
+  }, [isAuthenticated, user])
 
-  // Expose a function to manually join rooms
-  const joinRoom = useCallback(
-    (roomId) => {
-      if (socket && connected) {
-        debugLog(`Manually joining room: ${roomId}`)
-        socket.emit("joinRoom", roomId)
-        return true
-      }
-      debugLog(`Failed to join room ${roomId}: Socket not connected`)
-      return false
-    },
-    [socket, connected, debugLog],
-  )
-
-  // Provide the context value
   const value = {
     socket,
     connected,
-    joinRoom,
-    onlineUsers,
-    isUserOnline: useCallback((userId) => onlineUsers.includes(userId?.toString()), [onlineUsers]),
   }
 
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>

@@ -66,9 +66,21 @@ const verifyProfileOwner = (req, res, next) => {
     next();
 };
 
+const debugUserMiddleware = (req, res, next) => {
+  console.log("=== DEBUG USER MIDDLEWARE ===")
+  console.log("Headers:", req.headers)
+  console.log("User from JWT:", req.user)
+  console.log("User ID:", req.user?.id)
+  console.log("Params:", req.params)
+  console.log("=============================")
+  next()
+}
+
+
 module.exports={
     jwtAuthMiddleware,
     generateToken,
     verifyProfileOwner,
-    groupAdminOnly
+    groupAdminOnly,
+    debugUserMiddleware
 }

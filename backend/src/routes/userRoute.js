@@ -1,18 +1,18 @@
 const express = require("express");
 const { registerUser,loginUser,uploadProfileImage, getUserProfile,handleUserSearch,updateProfile } = require("../controllers/userController.js");
-const {verifyProfileOwner,jwtAuthMiddleware}=require("../middleware/jwtAuth.js")
+const {verifyProfileOwner,jwtAuthMiddleware,debugUserMiddleware}=require("../middleware/jwtAuth.js")
 const router = express.Router();
 const {uploadImage}=require("../controllers/uploadController.js")
-const upload = require("../config/multer");
+const upload = require("../config/multerConfig");
 
-const requestLogger = (req, res, next) => {
-  console.log("=== Request Logger ===")
-  console.log(`${req.method} ${req.url}`)
-  console.log("Headers:", req.headers)
-  console.log("Params:", req.params)
-  console.log("Query:", req.query)
-  next()
-}
+// const requestLogger = (req, res, next) => {
+//   console.log("=== Request Logger ===")
+//   console.log(`${req.method} ${req.url}`)
+//   console.log("Headers:", req.headers)
+//   console.log("Params:", req.params)
+//   console.log("Query:", req.query)
+//   next()
+// }
 
 router.post("/login",loginUser);
 
@@ -33,6 +33,7 @@ router.get("/profile",getUserProfile)
 router.post(
     "/upload-profile-image",
     jwtAuthMiddleware,
+    debugUserMiddleware,
     upload.single("profile_pic"),
     // verifyProfileOwner,
      uploadProfileImage

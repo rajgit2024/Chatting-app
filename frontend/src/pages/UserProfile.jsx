@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { IoPerson, IoAddCircle } from "react-icons/io5"
 import { TbArrowBackUp } from "react-icons/tb"
 import { useAuth } from "../contexts/AuthContext"
@@ -11,22 +11,38 @@ const UserProfile = () => {
   const { user, setUser, logout, loading } = useAuth()
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [currentProfilePic, setCurrentProfilePic] = useState(null)
   const [uploadLoading, setUploadLoading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
   const navigate = useNavigate()
 
-  // Handle file selection
+  // Simple placeholder image
+  const PLACEHOLDER_IMAGE = "https://via.placeholder.com/200x200/e2e8f0/64748b?text=User"
+
+  // Set initial profile picture when user data loads
+  useEffect(() => {
+    if (user?.profile_pic) {
+      setCurrentProfilePic(user.profile_pic)
+    }
+  }, [user])
+
+  // Function to determine which image to display
+  const getDisplayImageUrl = () => {
+    if (previewUrl) return previewUrl
+    if (currentProfilePic) return currentProfilePic
+    if (user?.profile_pic) return user.profile_pic
+    return PLACEHOLDER_IMAGE
+  }
+
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
 
-    // Validate file type
     if (!file.type.match("image.*")) {
       setUploadError("Please select an image file")
       return
     }
 
-    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       setUploadError("Image must be less than 5MB")
       return
@@ -37,15 +53,14 @@ const UserProfile = () => {
     setUploadError(null)
   }
 
-  // Handle profile picture upload
   const handleUpload = async () => {
     if (!selectedFile) {
       setUploadError("Please select an image first")
       return
     }
 
-    if (!user) {
-      setUploadError("You must be logged in to update your profile picture")
+    if (!user?.id) {
+      setUploadError("User ID is missing. Please log in again.")
       return
     }
 
@@ -53,23 +68,12 @@ const UserProfile = () => {
     setUploadError(null)
 
     try {
-      console.log("Starting profile picture upload for user:", user.id)
-
-      // Create form data
       const formData = new FormData()
       formData.append("profile_pic", selectedFile)
 
-      console.log("FormData created with file:", selectedFile.name)
-
-      // Get token from localStorage
       const token = localStorage.getItem("token")
-      if (!token) {
-        throw new Error("Authentication token not found")
-      }
+      if (!token) throw new Error("Authentication token not found")
 
-      console.log("Making API request to upload profile image...")
-
-      // Make API request to upload profile image
       const response = await axios.post("http://localhost:5000/api/users/upload-profile-image", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -77,76 +81,61 @@ const UserProfile = () => {
         },
       })
 
-      console.log("Profile picture upload response:", response.data)
-
-      // Check if upload was successful
       if (response.data.message === "Profile image uploaded successfully!") {
-        // Your backend returns filePath, so we need to construct the full URL
-        const profilePicUrl = `http://localhost:5000${response.data.filePath}`
-
-        console.log("Profile picture URL:", profilePicUrl)
-
-        // Update user state with new profile picture
-        setUser({
-          ...user,
-          profile_pic: profilePicUrl,
-        })
-
-        // Clear file selection and preview
+        const newProfilePicUrl = response.data.fullUrl
+        setUser({ ...user, profile_pic: newProfilePicUrl })
+        setCurrentProfilePic(newProfilePicUrl)
         setSelectedFile(null)
         setPreviewUrl(null)
 
-        // Show success message
+        const fileInput = document.getElementById("fileInput")
+        if (fileInput) fileInput.value = ""
+
         alert("Profile picture updated successfully!")
       } else {
-        throw new Error(response.data.message || "Failed to update profile picture")
+        throw new Error(response.data.message || "Upload failed")
       }
     } catch (error) {
-      console.error("Error uploading profile picture:", error)
-
-      // Handle different types of errors
-      let errorMessage = "Failed to update profile picture. Please try again."
-
-      if (error.response) {
-        // Server responded with error status
-        errorMessage = error.response.data?.message || errorMessage
-        console.error("Server error:", error.response.data)
-      } else if (error.request) {
-        // Request was made but no response received
-        errorMessage = "Network error. Please check your connection."
-        console.error("Network error:", error.request)
-      } else {
-        // Something else happened
-        errorMessage = error.message || errorMessage
-        console.error("Error:", error.message)
-      }
-
-      setUploadError(errorMessage)
+      const msg = error.response?.data?.message || error.message || "Failed to update profile picture"
+      setUploadError(msg)
     } finally {
       setUploadLoading(false)
     }
   }
 
-  // Loading state
+  const handleImageError = (e) => {
+    e.target.onerror = null
+    e.target.src = PLACEHOLDER_IMAGE
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="text-center mt-4 text-gray-700">Loading profile...</p>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}
+      >
+        <div className="bg-white p-8 rounded-3xl shadow-2xl text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-700 text-lg font-medium">Loading your profile...</p>
         </div>
       </div>
     )
   }
 
-  // Not authenticated state
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <p className="text-center text-gray-700">Please log in to view your profile.</p>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}
+      >
+        <div className="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-md">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <IoPerson className="w-10 h-10 text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Authentication Required</h2>
+          <p className="text-gray-600 mb-6">Please log in to access your profile</p>
           <button
-            className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-blue-600 w-full"
+            className="w-full bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-600 transition-colors"
             onClick={() => navigate("/login")}
           >
             Go to Login
@@ -156,119 +145,161 @@ const UserProfile = () => {
     )
   }
 
-  // Main profile view
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
-      <div className="bg-white shadow-xl rounded-2xl w-[90%] max-w-3xl p-6 backdrop-blur-lg bg-opacity-80">
-        {/* Header */}
-        <div className="w-full bg-gradient-to-r from-blue-400 to-blue-700 flex items-center justify-between px-6 h-14 rounded-t-2xl shadow-md">
-          <IoPerson className="text-2xl text-white" />
-          <h1 className="text-lg font-semibold text-white">User Profile</h1>
-          <TbArrowBackUp
-            className="text-2xl text-white cursor-pointer hover:scale-110 transition"
-            onClick={() => navigate(-1)}
-          />
-        </div>
-
-        {/* Profile Picture Section */}
-        <div className="mt-6 flex flex-col items-center">
-          <div className="relative">
-            <img
-              src={user.profile_pic 
-                 ? `http://localhost:5000${
-                      user.profile_image
-                    }?t=${new Date().getTime()}`: "https://via.placeholder.com/150"
-                  }
-              alt="Profile"
-              className="rounded-full border-4 border-blue-500 w-44 h-44 shadow-lg transition-transform hover:scale-105 object-cover"
-            />
-            <IoAddCircle
-              className="absolute bottom-0 right-0 text-blue-500 text-4xl cursor-pointer hover:text-blue-700 transition bg-white rounded-full"
-              onClick={() => document.getElementById("imageInput").click()}
-            />
-            <input id="imageInput" type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-          </div>
-
-          {/* User Info */}
-          <div className="text-center mt-4">
-            <h1 className="text-3xl font-bold text-gray-900">{user.username}</h1>
-            <p className="text-gray-600 text-sm">{user.email}</p>
-          </div>
-
-          {/* Error Message */}
-          {uploadError && (
-            <div className="mt-2 text-red-500 text-sm bg-red-50 p-3 rounded-md border border-red-200">
-              {uploadError}
-            </div>
-          )}
-
-          {/* Success Message for File Selection */}
-          {selectedFile && !uploadError && (
-            <div className="mt-2 text-green-600 text-sm bg-green-50 p-3 rounded-md border border-green-200">
-              File selected: {selectedFile.name} - Ready to upload!
-            </div>
-          )}
-        </div>
-
-        {/* User Details */}
-        <div className="mt-6 px-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center underline decoration-blue-400">
-            Your Details
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {[
-              { label: "Name", value: user.username },
-              { label: "Email", value: user.email },
-              { label: "Phone", value: user.phone_number },
-            ].map(({ label, value }, index) => (
-              <div key={index} className="bg-gray-100 p-4 rounded-lg shadow-sm hover:shadow-md transition">
-                <p className="font-medium text-gray-700">{label}:</p>
-                <p className="text-gray-900 font-semibold">{value || "Not provided"}</p>
+    <div className="min-h-screen p-4" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+      <div className="max-w-4xl mx-auto">
+        {/* Header Card */}
+        <div className="bg-white rounded-3xl shadow-2xl mb-6 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <IoPerson className="text-2xl text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">User Profile</h1>
+                  <p className="text-white text-opacity-80">Manage your account</p>
+                </div>
               </div>
-            ))}
+              <button
+                onClick={() => navigate(-1)}
+                className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-all"
+              >
+                <TbArrowBackUp className="text-2xl text-white" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Upload Button */}
-        <div className="mt-6 px-6 text-center">
-          <button
-            className={`${
-              uploadLoading
-                ? "bg-gray-400 cursor-not-allowed"
-                : selectedFile
-                  ? "bg-blue-500 hover:bg-blue-600 hover:scale-105"
-                  : "bg-gray-300 cursor-not-allowed"
-            } text-white px-8 py-3 rounded-full shadow-md transition font-semibold flex items-center justify-center mx-auto min-w-[150px]`}
-            onClick={handleUpload}
-            disabled={uploadLoading || !selectedFile}
-          >
-            {uploadLoading ? (
-              <>
-                <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
-                Uploading...
-              </>
-            ) : selectedFile ? (
-              "Upload Image"
-            ) : (
-              "Select Image First"
-            )}
-          </button>
-        </div>
+        {/* Main Profile Card */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          {/* Profile Image Section */}
+          <div className="p-8 text-center">
+            <div className="relative inline-block mb-6">
+              <img
+                src={getDisplayImageUrl() || "/placeholder.svg"}
+                alt="Profile"
+                className="w-48 h-48 rounded-3xl object-cover shadow-xl border-4 border-gray-100"
+                onError={handleImageError}
+              />
+              <button
+                onClick={() => document.getElementById("fileInput").click()}
+                className="absolute -bottom-4 -right-4 w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center shadow-xl hover:bg-blue-600 transition-colors border-4 border-white"
+              >
+                <IoAddCircle className="text-2xl text-white" />
+              </button>
+              <input id="fileInput" type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+            </div>
 
-        {/* Action Buttons */}
-        <div className="mt-6 flex space-x-4 px-6 pb-6 justify-center">
-          <button
-            className="bg-blue-500 text-white px-6 py-2 shadow-md hover:bg-blue-600 hover:scale-105 rounded-full font-semibold transition"
-            onClick={() => navigate("/profile/password")}
-          >
-            Update Password
-          </button>
-          <button
-            className="bg-red-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-red-600 hover:scale-105 font-semibold transition"
-            onClick={logout}
-          >
-            Log Out
-          </button>
+            <h2 className="text-4xl font-bold text-gray-800 mb-2">{user.username}</h2>
+            <p className="text-xl text-gray-600 mb-6">{user.email}</p>
+
+            {/* Status Badges */}
+            <div className="flex justify-center space-x-3 mb-8">
+              <span className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">✓ Verified</span>
+              <span className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">Active User</span>
+            </div>
+
+            {/* Upload Section */}
+            {selectedFile && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-200">
+                <p className="text-blue-700 font-medium mb-2">Ready to upload: {selectedFile.name}</p>
+                <div className="flex justify-center space-x-3">
+                  <button
+                    onClick={() => {
+                      setSelectedFile(null)
+                      setPreviewUrl(null)
+                      setUploadError(null)
+                      document.getElementById("fileInput").value = ""
+                    }}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpload}
+                    disabled={uploadLoading}
+                    className="px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50"
+                  >
+                    {uploadLoading ? "Uploading..." : "Upload Photo"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {uploadError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
+                <p className="text-red-600">{uploadError}</p>
+              </div>
+            )}
+          </div>
+
+          {/* User Details Section */}
+          <div className="p-8 border-t border-gray-200">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6">Account Details</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gray-50 rounded-2xl p-6 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <IoPerson className="text-xl text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Full Name</p>
+                    <p className="text-gray-800 text-lg font-semibold">{user.username}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-6 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <span className="text-xl text-purple-600">@</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Email</p>
+                    <p className="text-gray-800 text-lg font-semibold break-all">{user.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-6 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                    <span className="text-xl text-green-600">#</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">User ID</p>
+                    <p className="text-gray-800 text-lg font-semibold">{user.id}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-6 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center">
+                    <span className="text-xl text-pink-600">📅</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Member Since</p>
+                    <p className="text-gray-800 text-lg font-semibold">
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : "Not available"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions Section */}
+          <div className="p-8 border-t border-gray-200 text-center">
+            <button
+              onClick={logout}
+              className="bg-red-500 text-white px-8 py-4 rounded-2xl font-semibold hover:bg-red-600 transition-colors shadow-lg hover:shadow-xl"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     </div>
