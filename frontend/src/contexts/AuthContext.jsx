@@ -174,42 +174,12 @@ export const AuthProvider = ({ children }) => {
     setAuthError(null)
 
     // Clear authorization header
-    delete axios.defaults.headers.common["Authorization"]
+    window.dispatchEvent(new Event("tokenChanged"))
 
     // Notify server (but don't wait for response)
     axios.post("/api/users/logout").catch((err) => console.error("Logout error:", err?.response?.data || err.message))
 
     console.log("User logged out successfully")
-  }
-
-  const updateProfilePicture = async (file) => {
-    if (!user) {
-      console.error("Cannot update profile picture: No authenticated user")
-      return
-    }
-
-    console.log("Updating profile picture for user:", user.id)
-
-    const formData = new FormData()
-    formData.append("profile_pic", file)
-
-    try {
-      const res = await axios.put(`http://localhost:5000/api/users/profile-update`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-           Authorization: `Bearer ${localStorage.getItem("token")}`
-        },
-        
-      })
-
-      console.log("Profile picture updated successfully:", res.data.profile_pic)
-
-      setUser({ ...user, profile_pic: res.data.profile_pic })
-      return { success: true, profile_pic: res.data.profile_pic }
-    } catch (error) {
-      console.error("Error updating profile picture:", error?.response?.data || error.message)
-      throw error
-    }
   }
 
   // Check authentication status - useful for debugging
@@ -232,8 +202,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    updateProfilePicture,
     refreshAuth: loadUser, // Expose this function to manually refresh auth
+    setUser, // Expose setUser to allow profile updates
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

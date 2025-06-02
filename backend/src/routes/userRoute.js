@@ -34,7 +34,7 @@ router.post(
     "/upload-profile-image",
     jwtAuthMiddleware,
     upload.single("profile_pic"),
-    verifyProfileOwner,
+    // verifyProfileOwner,
      uploadProfileImage
   );
 router.get('/search', jwtAuthMiddleware, handleUserSearch);
