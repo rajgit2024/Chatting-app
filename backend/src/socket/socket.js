@@ -16,6 +16,7 @@ const setupSocket = (server) => {
     const timestamp = new Date().toISOString().split("T")[1].split(".")[0]
     console.log(`[${timestamp}] [Socket] ${message}`, data || "")
   }
+
   io.on("connection", (socket) => {
     debugLog(`New socket connection: ${socket.id}`)
 
@@ -159,6 +160,8 @@ const setupSocket = (server) => {
     })
   })
 
+  // Return the io instance so it can be used elsewhere
+  return io
 }
 
 module.exports = setupSocket

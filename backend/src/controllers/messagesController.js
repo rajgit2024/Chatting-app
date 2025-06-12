@@ -9,7 +9,8 @@ const {
 const sendMessage = async (req, res) => {
   try {
     const { chat_id, content } = req.body;
-    const sender_id = req.user.id;  // 👈 Automatically from JWT user!
+    const sender_id = req.user.id;  //  Automatically from JWT user!
+    
     if (!chat_id || !content?.trim() || !sender_id) {
       return res.status(400).json({ message: "Chat ID, sender ID and content are required." });
     }
@@ -21,9 +22,14 @@ const sendMessage = async (req, res) => {
 
     const newMessage = await insertMessage(chat_id, sender_id, content);
 
-    // Emit to chat room via Socket.IO
+    // Get Socket.IO instance and emit to chat room
     const io = req.app.get("io");
-    io.to(chat_id.toString()).emit("receiveMessage", newMessage);
+    if (io) {
+      io.to(chat_id.toString()).emit("receiveMessage", newMessage);
+      console.log(`Message emitted to chat room: ${chat_id}`);
+    } else {
+      console.error("Socket.IO instance not found on app");
+    }
 
     return res.status(201).json(newMessage);
   } catch (error) {

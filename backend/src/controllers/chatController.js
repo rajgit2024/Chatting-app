@@ -12,14 +12,14 @@ const { findPrivateChat, createChat,createPrivateChat, addChatMember,  getChatBy
       console.log("Body received:", req.body);
       console.log("User:", req.user);
   
-      const { name, isGroup, members } = req.body;
+      const { name, is_group, members } = req.body;
       const createdBy = req.user.id;
   
       if (!name || !Array.isArray(members)) {
         return res.status(400).json({ error: "Name and members are required." });
       }
   
-      const chat = await createChat(name, isGroup, createdBy);
+      const chat = await createChat(name, is_group, createdBy);
       console.log("Chat created:", chat);
   
       await addChatMember(chat.id, createdBy, 'admin');

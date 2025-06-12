@@ -130,7 +130,7 @@ const UserProfile = () => {
       >
         <div className="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-md">
           <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <IoPerson className="w-10 h-10 text-red-500" />
+            <IoPerson  className="w-10 h-10 text-red-500" />
           </div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">Authentication Required</h2>
           <p className="text-gray-600 mb-6">Please log in to access your profile</p>
